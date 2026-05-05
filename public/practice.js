@@ -3,11 +3,25 @@
   if (!type) return;
 
   const labels = {
-    mcq: { title: "MCQ Practice", count: 5, button: "Generate Questions" },
-    saq: { title: "SAQ Practice", count: 1, button: "Generate SAQ" },
-    dbq: { title: "DBQ Practice", count: 1, button: "Generate DBQ" },
-    leq: { title: "LEQ Practice", count: 1, button: "Generate LEQ" }
+    mcq: { title: "MCQ Practice", count: 10, button: "Generate 10 Questions" },
+    saq: { title: "SAQ Practice", count: 10, button: "Generate 10 SAQs" },
+    dbq: { title: "DBQ Practice", count: 10, button: "Generate 10 DBQs" },
+    leq: { title: "LEQ Practice", count: 10, button: "Generate 10 LEQs" }
   };
+  const randomTopics = [
+    { topic: "Indian Ocean trade networks, merchant diasporas, and cultural exchange", period: "Period 1: c. 1200-c. 1450" },
+    { topic: "Mongol rule, Eurasian trade, and cross-cultural transfer", period: "Period 1: c. 1200-c. 1450" },
+    { topic: "Gunpowder empires, legitimacy, and state centralization", period: "Period 2: c. 1450-c. 1750" },
+    { topic: "Atlantic slavery, plantation economies, and resistance", period: "Period 2: c. 1450-c. 1750" },
+    { topic: "Maritime empires, silver flows, and global trade", period: "Period 2: c. 1450-c. 1750" },
+    { topic: "Industrialization, labor systems, and urban social change", period: "Period 3: c. 1750-c. 1900" },
+    { topic: "Imperialism, nationalism, and colonial resistance", period: "Period 3: c. 1750-c. 1900" },
+    { topic: "Political revolutions, Enlightenment ideas, and new states", period: "Period 3: c. 1750-c. 1900" },
+    { topic: "World wars, total war, and state mobilization", period: "Period 4: c. 1900-present" },
+    { topic: "Decolonization, nationalism, and postcolonial political structures", period: "Period 4: c. 1900-present" },
+    { topic: "Cold War competition, proxy conflicts, and nonalignment", period: "Period 4: c. 1900-present" },
+    { topic: "Globalization, migration, technology, and environmental change", period: "Period 4: c. 1900-present" }
+  ];
   const apiRoot = window.APWorldStore?.apiRoot || "";
 
   const state = {
@@ -21,12 +35,21 @@
   const periodInput = document.querySelector("#periodInput");
   const difficultyInput = document.querySelector("#difficultyInput");
   const generateButton = document.querySelector("#generateButton");
+  const randomTopicButton = document.querySelector("#randomTopicButton");
   const reviewMissedButton = document.querySelector("#reviewMissedButton");
   const emptyState = document.querySelector("#emptyState");
   const questionArea = document.querySelector("#questionArea");
 
   generateButton?.addEventListener("click", () => generatePractice());
+  randomTopicButton?.addEventListener("click", () => generateRandomTopic());
   reviewMissedButton?.addEventListener("click", () => loadMissedMcqs());
+
+  function generateRandomTopic() {
+    const topic = randomTopics[Math.floor(Math.random() * randomTopics.length)];
+    if (topicInput) topicInput.value = topic.topic;
+    if (periodInput) periodInput.value = topic.period;
+    generatePractice();
+  }
 
   async function generatePractice() {
     setLoading(true, labels[type].button);
@@ -94,6 +117,7 @@
     const textarea = questionArea.querySelector("textarea");
     const gradeButton = questionArea.querySelector("[data-grade]");
     gradeButton?.addEventListener("click", () => gradeWritten(item, textarea.value));
+    questionArea.querySelector("[data-next]")?.addEventListener("click", nextQuestion);
   }
 
   function renderMcq(item, warning) {
@@ -125,6 +149,7 @@
   }
 
   function renderWritten(item, warning) {
+    const progress = `${state.index + 1} of ${state.items.length}`;
     const documents = (item.documents || []).map((document, index) => renderDocument(document, index)).join("");
     const rubric = (item.rubric || []).map((line) => `<li>${escapeHtml(line)}</li>`).join("");
 
@@ -132,6 +157,7 @@
       ${warning ? `<p class="notice">${escapeHtml(warning)}</p>` : ""}
       <article class="question-card">
         <div class="question-meta">
+          <span>${escapeHtml(progress)}</span>
           <span>${escapeHtml(item.period || "AP World")}</span>
           <span>${escapeHtml(item.skill || "Writing")}</span>
           <span>${type.toUpperCase()}</span>
@@ -143,6 +169,7 @@
         <textarea id="studentResponse" rows="${type === "saq" ? "8" : "16"}" placeholder="Write your response here."></textarea>
         <div class="question-actions">
           <button class="primary-action" type="button" data-grade>Grade Response</button>
+          <button class="secondary-action" type="button" data-next>${state.index + 1 === state.items.length ? "Finish Set" : "Next Prompt"}</button>
         </div>
         <div id="resultBox" class="result-box" hidden></div>
         ${rubric ? `<details class="rubric-details"><summary>Rubric target</summary><ul>${rubric}</ul></details>` : ""}
@@ -227,7 +254,10 @@
 
   function nextQuestion() {
     if (state.index + 1 >= state.items.length) {
-      renderMessage("Set complete.", state.reviewMode ? "Any MCQ you answered correctly was cleared from missed review." : "Missed MCQs were saved for later review.");
+      const message = type === "mcq"
+        ? (state.reviewMode ? "Any MCQ you answered correctly was cleared from missed review." : "Missed MCQs were saved for later review.")
+        : "You finished this 10-prompt set. Generate another set when you want a fresh round.";
+      renderMessage("Set complete.", message);
       window.APWorldStore.updateMissedCount();
       return;
     }
@@ -248,9 +278,14 @@
 
   function setLoading(isLoading, label) {
     state.loading = isLoading;
-    if (!generateButton) return;
-    generateButton.disabled = isLoading;
-    generateButton.textContent = isLoading ? "Generating" : label;
+    if (generateButton) {
+      generateButton.disabled = isLoading;
+      generateButton.textContent = isLoading ? "Generating" : label;
+    }
+    if (randomTopicButton) {
+      randomTopicButton.disabled = isLoading;
+      randomTopicButton.textContent = isLoading ? "Generating" : "Generate Random Topic";
+    }
   }
 
   function normalizeAnswer(value) {

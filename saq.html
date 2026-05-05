@@ -21,7 +21,7 @@
       <section class="page-intro">
         <p class="eyebrow">Short answer</p>
         <h1>SAQ Practice</h1>
-        <p>Generate a three-part prompt, write your response, and send it for rubric-style grading.</p>
+        <p>Generate 10 three-part prompts, write your responses, and send them for rubric-style grading.</p>
       </section>
       <section class="practice-workbench">
         <aside class="control-panel">
@@ -43,12 +43,13 @@
               <option>Mixed difficulty</option>
             </select>
           </label>
-          <button id="generateButton" class="primary-action" type="button">Generate SAQ</button>
+          <button id="generateButton" class="primary-action" type="button">Generate 10 SAQs</button>
+          <button id="randomTopicButton" class="secondary-action" type="button">Generate Random Topic</button>
           <p class="small-note" data-ai-status>Checking AI mode</p>
         </aside>
         <section class="question-panel" aria-live="polite">
           <div id="emptyState" class="empty-state">
-            <h2>Generate a prompt to begin.</h2>
+            <h2>Generate 10 prompts to begin.</h2>
             <p>The grader looks for direct answers, evidence, and historical reasoning.</p>
           </div>
           <div id="questionArea" hidden></div>

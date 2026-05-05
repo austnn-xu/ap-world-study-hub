@@ -175,8 +175,8 @@ function normalizeType(type) {
 
 async function createPractice(body) {
   const type = normalizeType(body.type);
-  const maxCount = type === "mcq" ? 10 : 1;
-  const count = Math.max(1, Math.min(maxCount, Number(body.count || (type === "mcq" ? 5 : 1))));
+  const requestedCount = Number(body.count || 10);
+  const count = Math.max(10, Math.min(10, Number.isFinite(requestedCount) ? requestedCount : 10));
   const request = {
     type,
     count,
@@ -260,9 +260,11 @@ async function createPracticeWithAI(request) {
     "Each item must include: id, type, period, skill, stimulus, prompt, choices, answer, explanation, rubric, documents, tags.",
     "For MCQ, choices must be exactly four objects with id A-D and answer must be A, B, C, or D.",
     "For MCQ sets with more than one item, vary the correct answer letters across A, B, C, and D. Do not make every answer A.",
-    "For SAQ, make a three-part prompt labeled A, B, and C.",
-    "For DBQ, include 4-6 invented AP-style documents, not summaries. Each document must be an object with title, source, date, context, and text. The text should be 70-140 words and read like a short primary source excerpt, data table description, petition, speech, law, letter, newspaper passage, or report excerpt.",
-    "For LEQ, ask for a thesis-driven essay."
+    "Create exactly the requested number of separate items.",
+    "For SAQ items, make each prompt three parts labeled A, B, and C.",
+    "For DBQ items, include 4-6 invented AP-style documents for each item, not summaries. Each document must be an object with title, source, date, context, and text. The text should be 60-120 words and read like a short primary source excerpt, data table description, petition, speech, law, letter, newspaper passage, or report excerpt.",
+    "For LEQ items, ask for thesis-driven essays.",
+    "For SAQ, DBQ, and LEQ sets, vary the topic angle across the items while staying inside the user's focus."
   ].join(" ");
 
   const prompt = [
@@ -375,11 +377,28 @@ function normalizePracticeResult(result, request) {
   const items = Array.isArray(result.items) ? result.items : [];
   const normalizedItems = items.slice(0, request.count).map((item, index) => normalizeItem(item, request, index));
   const finalItems = request.type === "mcq" ? rebalanceMcqAnswers(normalizedItems) : normalizedItems;
+  const completedItems = ensureItemCount(finalItems, fallback.items, request);
 
   return {
     title: cleanText(result.title, fallback.title),
-    items: finalItems.length ? finalItems : fallback.items
+    items: completedItems
   };
+}
+
+function ensureItemCount(items, fallbackItems, request) {
+  const output = items.slice(0, request.count);
+  const fallback = Array.isArray(fallbackItems) ? fallbackItems : [];
+
+  for (let index = output.length; index < request.count && fallback.length; index += 1) {
+    const clone = cloneItem(fallback[index % fallback.length]);
+    output.push({
+      ...clone,
+      id: `${request.type}-fallback-${index + 1}`,
+      type: request.type
+    });
+  }
+
+  return request.type === "mcq" ? rebalanceMcqAnswers(output) : output;
 }
 
 function normalizeItem(item, request, index) {
@@ -471,19 +490,32 @@ function samplePractice(request) {
   if (request.type === "mcq") {
     return {
       title: "Sample AP World MCQ Set",
-      items: rebalanceMcqAnswers(sampleMcqBank.slice(0, request.count).map((item, index) => ({
-        ...item,
-        id: `sample-mcq-${index + 1}`,
-        type: "mcq"
-      })))
+      items: rebalanceMcqAnswers(buildSampleItems(sampleMcqBank, request))
     };
   }
 
   const sample = sampleWritten[request.type];
   return {
     title: sample.title,
-    items: [{ ...sample.item, id: `sample-${request.type}-1`, type: request.type }]
+    items: buildSampleItems(sample.items || [sample.item], request)
   };
+}
+
+function buildSampleItems(baseItems, request) {
+  const items = [];
+  for (let index = 0; index < request.count; index += 1) {
+    const clone = cloneItem(baseItems[index % baseItems.length]);
+    items.push({
+      ...clone,
+      id: `sample-${request.type}-${index + 1}`,
+      type: request.type
+    });
+  }
+  return items;
+}
+
+function cloneItem(item) {
+  return JSON.parse(JSON.stringify(item || {}));
 }
 
 function sampleGrade(request) {
@@ -599,6 +631,91 @@ const sampleMcqBank = [
     rubric: [],
     documents: [],
     tags: ["gunpowder empires", "Ottoman Empire", "state-building"]
+  },
+  {
+    period: "Period 1: c. 1200-c. 1450",
+    skill: "Comparison",
+    stimulus: "Swahili city-states grew wealthy by connecting African interior goods with merchants from Arabia, Persia, India, and China.",
+    prompt: "Which comparison best describes the Swahili city-states and the cities of the Silk Roads?",
+    choices: [
+      { id: "A", text: "Both relied only on local subsistence farming and avoided long-distance commerce" },
+      { id: "B", text: "Both served as commercial centers where trade encouraged cultural exchange" },
+      { id: "C", text: "Both developed in complete isolation from larger regional networks" },
+      { id: "D", text: "Both rejected the use of foreign languages and religions in trade" }
+    ],
+    answer: "B",
+    explanation: "Both the Swahili coast and Silk Road cities became trade hubs where merchants, languages, religions, and goods mixed.",
+    rubric: [],
+    documents: [],
+    tags: ["Indian Ocean", "Swahili coast", "trade"]
+  },
+  {
+    period: "Period 2: c. 1450-c. 1750",
+    skill: "Contextualization",
+    stimulus: "European states established maritime trading-post empires and plantation colonies after developing oceanic navigation and armed ships.",
+    prompt: "The pattern described in the stimulus was most directly enabled by",
+    choices: [
+      { id: "A", text: "the spread of maritime technologies and state-backed exploration" },
+      { id: "B", text: "the permanent collapse of all Asian trading networks" },
+      { id: "C", text: "the end of demand for spices and luxury goods" },
+      { id: "D", text: "the disappearance of joint-stock companies" }
+    ],
+    answer: "A",
+    explanation: "Navigation tools, ship designs, cannon, and state sponsorship helped European states expand maritime activity.",
+    rubric: [],
+    documents: [],
+    tags: ["maritime empires", "exploration", "technology"]
+  },
+  {
+    period: "Period 3: c. 1750-c. 1900",
+    skill: "Causation",
+    stimulus: "Anti-colonial rebellions and reform movements emerged in regions facing expanding European economic and political pressure.",
+    prompt: "Which development was most often a cause of the resistance described?",
+    choices: [
+      { id: "A", text: "Colonized peoples uniformly accepted foreign rule without negotiation" },
+      { id: "B", text: "Imperial states reduced taxes and gave up control over raw materials" },
+      { id: "C", text: "Local groups objected to foreign political control, economic extraction, and cultural interference" },
+      { id: "D", text: "Industrial states stopped seeking overseas markets" }
+    ],
+    answer: "C",
+    explanation: "Resistance often responded to colonial rule, land pressure, resource extraction, missionary activity, and unequal economic relationships.",
+    rubric: [],
+    documents: [],
+    tags: ["imperialism", "resistance", "colonialism"]
+  },
+  {
+    period: "Period 4: c. 1900-present",
+    skill: "Continuity and change",
+    stimulus: "Newly independent states after 1945 often kept colonial borders while attempting to build national governments and economies.",
+    prompt: "Which statement best explains a challenge connected to the process described?",
+    choices: [
+      { id: "A", text: "All new states inherited identical ethnic and linguistic populations" },
+      { id: "B", text: "Colonial boundaries and economic structures sometimes made postcolonial nation-building difficult" },
+      { id: "C", text: "Decolonization ended all international economic dependency immediately" },
+      { id: "D", text: "Nationalist movements rejected sovereignty as a goal" }
+    ],
+    answer: "B",
+    explanation: "Postcolonial states often faced borders, institutions, and economies shaped by colonial priorities rather than local unity.",
+    rubric: [],
+    documents: [],
+    tags: ["decolonization", "postcolonial states", "nationalism"]
+  },
+  {
+    period: "Period 4: c. 1900-present",
+    skill: "Causation",
+    stimulus: "Container shipping, air travel, digital communication, and multinational corporations accelerated global economic connections late in the twentieth century.",
+    prompt: "Which outcome most directly resulted from the developments described?",
+    choices: [
+      { id: "A", text: "Global supply chains linked production and consumption across multiple regions" },
+      { id: "B", text: "International migration permanently ended" },
+      { id: "C", text: "States lost all ability to regulate trade" },
+      { id: "D", text: "All local cultures disappeared at the same pace" }
+    ],
+    answer: "A",
+    explanation: "Late twentieth-century technologies and corporations made it easier to split production across regions and sell goods globally.",
+    rubric: [],
+    documents: [],
+    tags: ["globalization", "technology", "trade"]
   }
 ];
 
