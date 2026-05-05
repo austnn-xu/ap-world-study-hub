@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AP World Study Hub</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="home-page">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="AP World Study Hub home">
+        <span class="brand-mark">WH</span>
+        <span>AP World Study Hub</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="mcq.html">MCQ</a>
+        <a href="saq.html">SAQ</a>
+        <a href="dbq.html">DBQ</a>
+        <a href="leq.html">LEQ</a>
+        <a href="timeline.html">Timeline</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">AP World History studying</p>
+          <h1>AP World History Study Hub</h1>
+          <p class="hero-subtitle">
+            Practice the exam, review missed MCQs, draft written responses, and move through the timeline without leaving the same study space.
+          </p>
+          <div class="hero-metrics" aria-label="Study focus">
+            <span>AI practice</span>
+            <span>Rubric feedback</span>
+            <span>Timeline review</span>
+          </div>
+          <div class="home-actions" aria-label="Study modes">
+            <a class="home-button" href="mcq.html">
+              <span class="button-icon">A</span>
+              <span>
+                <strong>MCQ Practice</strong>
+                <small><span data-missed-count>0</span> missed saved</small>
+              </span>
+            </a>
+            <a class="home-button" href="saq.html">
+              <span class="button-icon">S</span>
+              <span>
+                <strong>SAQ Practice</strong>
+                <small>3-part short answers</small>
+              </span>
+            </a>
+            <a class="home-button" href="dbq.html">
+              <span class="button-icon">D</span>
+              <span>
+                <strong>DBQ Practice</strong>
+                <small>documents and rubric grading</small>
+              </span>
+            </a>
+            <a class="home-button" href="leq.html">
+              <span class="button-icon">L</span>
+              <span>
+                <strong>LEQ Practice</strong>
+                <small>thesis and evidence drills</small>
+              </span>
+            </a>
+            <a class="home-button timeline-button" href="timeline.html">
+              <span class="button-icon">T</span>
+              <span>
+                <strong>Timeline</strong>
+                <small>AP periods and turning points</small>
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="status-band" aria-label="Study status">
+        <div>
+          <span class="status-label">AI mode</span>
+          <strong data-ai-status>Checking</strong>
+        </div>
+        <div>
+          <span class="status-label">Wrong MCQs</span>
+          <strong><span data-missed-count>0</span> saved</strong>
+        </div>
+        <div>
+          <span class="status-label">Timeline span</span>
+          <strong>c. 1200 to today</strong>
+        </div>
+      </section>
+
+      <section class="study-grid" aria-label="Study highlights">
+        <article class="study-tile">
+          <span class="tile-kicker">Review loop</span>
+          <h2>Missed MCQs stay saved</h2>
+          <p>Wrong answers become a focused review queue so the app gets sharper the more you study.</p>
+        </article>
+        <article class="study-tile">
+          <span class="tile-kicker">Writing</span>
+          <h2>SAQ, DBQ, and LEQ feedback</h2>
+          <p>The written pages are built around score, evidence, and next-step feedback instead of generic comments.</p>
+        </article>
+        <article class="study-tile">
+          <span class="tile-kicker">Timeline</span>
+          <h2>Filter by period and region</h2>
+          <p>Move through AP World turning points with search, period filters, and a persistent light/dark switch.</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
