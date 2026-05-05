@@ -1,7 +1,7 @@
 (function () {
   const missedKey = "apworld.missed.mcq.v1";
-  const themeKey = "apworld.theme.v1";
-  const apiRoot = window.location.protocol === "file:" ? "http://localhost:4173" : "";
+  const themeKey = "apworld.theme.v2";
+  const apiRoot = window.location.protocol === "file:" || window.location.hostname.endsWith("github.io") ? "http://localhost:4173" : "";
 
   applyTheme(readTheme());
 
@@ -70,7 +70,7 @@
 
   function readTheme() {
     const stored = localStorage.getItem(themeKey);
-    return stored === "light" ? "light" : "dark";
+    return stored === "dark" ? "dark" : "light";
   }
 
   function applyTheme(theme) {

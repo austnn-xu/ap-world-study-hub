@@ -131,14 +131,12 @@ button:disabled {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 11px;
   min-width: max-content;
   color: var(--heading);
   font-size: 0.98rem;
-  font-weight: 750;
+  font-weight: 760;
 }
 
-.brand-mark,
 .button-icon {
   display: inline-grid;
   place-items: center;
@@ -305,6 +303,17 @@ h1 {
   box-shadow: var(--shadow), var(--glow);
   backdrop-filter: blur(22px);
   transform: perspective(1000px) rotateY(-8deg) rotateX(3deg);
+  animation: floatWindow 6.5s ease-in-out infinite;
+}
+
+@keyframes floatWindow {
+  0%,
+  100% {
+    transform: perspective(1000px) rotateY(-8deg) rotateX(3deg) translateY(0);
+  }
+  50% {
+    transform: perspective(1000px) rotateY(-8deg) rotateX(3deg) translateY(-12px);
+  }
 }
 
 .product-toolbar {
@@ -386,16 +395,27 @@ h1 {
   gap: 12px;
   min-height: 94px;
   padding: 15px;
-  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--panel), var(--panel)) padding-box,
+    linear-gradient(135deg, rgba(94, 231, 255, 0.95), rgba(167, 139, 250, 0.8), rgba(255, 106, 183, 0.85)) border-box;
+  box-shadow: var(--shadow), 0 0 20px rgba(94, 231, 255, 0.08);
+  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease, filter 180ms ease;
 }
 
 .home-button:hover,
 .study-tile:hover,
 .timeline-event:hover {
   transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.075);
   box-shadow: var(--shadow), var(--glow);
+}
+
+.home-button:hover {
+  background:
+    linear-gradient(color-mix(in srgb, var(--panel) 86%, white 14%), color-mix(in srgb, var(--panel) 86%, white 14%)) padding-box,
+    linear-gradient(135deg, var(--rgb-a), var(--rgb-b), var(--rgb-c)) border-box;
+  filter: saturate(1.14);
 }
 
 .home-button strong,
@@ -568,14 +588,19 @@ textarea:focus {
 
 .primary-action {
   color: #050505;
-  background: #ffffff;
-  box-shadow: 0 0 28px rgba(255, 255, 255, 0.08);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, var(--rgb-a), var(--rgb-b), var(--rgb-c)) border-box;
+  box-shadow: 0 0 28px rgba(255, 255, 255, 0.08), 0 0 18px rgba(94, 231, 255, 0.08);
 }
 
 .secondary-action {
   color: var(--heading);
-  border-color: var(--line);
-  background: var(--panel-soft);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--panel-soft), var(--panel-soft)) padding-box,
+    linear-gradient(135deg, rgba(94, 231, 255, 0.9), rgba(167, 139, 250, 0.65), rgba(255, 106, 183, 0.8)) border-box;
 }
 
 .primary-action:hover,
@@ -888,6 +913,17 @@ html[data-theme="light"] .document-item {
     width: min(100%, 520px);
     margin-top: 34px;
     transform: none;
+    animation: floatWindowSmall 6.5s ease-in-out infinite;
+  }
+
+  @keyframes floatWindowSmall {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   .hero-copy {
@@ -977,5 +1013,9 @@ html[data-theme="light"] .document-item {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+  }
+
+  .hero-product {
+    animation: none !important;
   }
 }
