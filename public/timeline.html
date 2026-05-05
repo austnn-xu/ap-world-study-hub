@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Timeline | AP World Study Hub</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/"><span class="brand-mark">WH</span><span>AP World Study Hub</span></a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/mcq">MCQ</a>
+        <a href="/saq">SAQ</a>
+        <a href="/dbq">DBQ</a>
+        <a href="/leq">LEQ</a>
+        <a class="active" href="/timeline">Timeline</a>
+      </nav>
+    </header>
+    <main class="timeline-page">
+      <section class="timeline-hero">
+        <div>
+          <p class="eyebrow">AP World timeline</p>
+          <h1>World History Turning Points</h1>
+          <p>Filter the major AP World developments by period, region, or theme.</p>
+        </div>
+      </section>
+
+      <section class="timeline-controls" aria-label="Timeline filters">
+        <label>Search <input id="timelineSearch" type="search" placeholder="Mongols, silver, Cold War"></label>
+        <label>Period
+          <select id="periodFilter">
+            <option value="all">All periods</option>
+            <option value="p1">Period 1</option>
+            <option value="p2">Period 2</option>
+            <option value="p3">Period 3</option>
+            <option value="p4">Period 4</option>
+          </select>
+        </label>
+        <label>Region
+          <select id="regionFilter">
+            <option value="all">All regions</option>
+            <option>Africa</option>
+            <option>Americas</option>
+            <option>Asia</option>
+            <option>Europe</option>
+            <option>Global</option>
+            <option>Middle East</option>
+          </select>
+        </label>
+      </section>
+
+      <section id="timelineList" class="timeline-list" aria-live="polite"></section>
+    </main>
+    <script src="/app.js"></script>
+    <script src="/timeline.js"></script>
+  </body>
+</html>

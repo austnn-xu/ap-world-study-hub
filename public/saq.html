@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SAQ Practice | AP World Study Hub</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body data-practice-type="saq">
+    <header class="site-header">
+      <a class="brand" href="/"><span class="brand-mark">WH</span><span>AP World Study Hub</span></a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/mcq">MCQ</a>
+        <a class="active" href="/saq">SAQ</a>
+        <a href="/dbq">DBQ</a>
+        <a href="/leq">LEQ</a>
+        <a href="/timeline">Timeline</a>
+      </nav>
+    </header>
+    <main class="practice-layout">
+      <section class="page-intro">
+        <p class="eyebrow">Short answer</p>
+        <h1>SAQ Practice</h1>
+        <p>Generate a three-part prompt, write your response, and send it for rubric-style grading.</p>
+      </section>
+      <section class="practice-workbench">
+        <aside class="control-panel">
+          <label>Topic focus <input id="topicInput" type="text" placeholder="state-building, trade, belief systems"></label>
+          <label>Period
+            <select id="periodInput">
+              <option>Any AP World period</option>
+              <option>Period 1: c. 1200-c. 1450</option>
+              <option>Period 2: c. 1450-c. 1750</option>
+              <option>Period 3: c. 1750-c. 1900</option>
+              <option>Period 4: c. 1900-present</option>
+            </select>
+          </label>
+          <label>Difficulty
+            <select id="difficultyInput">
+              <option>AP exam style</option>
+              <option>Foundational</option>
+              <option>Challenging</option>
+              <option>Mixed difficulty</option>
+            </select>
+          </label>
+          <button id="generateButton" class="primary-action" type="button">Generate SAQ</button>
+          <p class="small-note" data-ai-status>Checking AI mode</p>
+        </aside>
+        <section class="question-panel" aria-live="polite">
+          <div id="emptyState" class="empty-state">
+            <h2>Generate a prompt to begin.</h2>
+            <p>The grader looks for direct answers, evidence, and historical reasoning.</p>
+          </div>
+          <div id="questionArea" hidden></div>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+    <script src="/practice.js"></script>
+  </body>
+</html>

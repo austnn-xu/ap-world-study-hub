@@ -1,0 +1,606 @@
+import { createServer } from "node:http";
+import { existsSync, readFileSync } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+loadDotEnv();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = path.join(__dirname, "public");
+const port = Number(process.env.PORT || 4173);
+const openAiKey = process.env.OPENAI_API_KEY || "";
+const openAiModel = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const responsesUrl = process.env.OPENAI_RESPONSES_URL || "https://api.openai.com/v1/responses";
+
+const routeFiles = new Map([
+  ["/", "index.html"],
+  ["/mcq", "mcq.html"],
+  ["/saq", "saq.html"],
+  ["/dbq", "dbq.html"],
+  ["/leq", "leq.html"],
+  ["/timeline", "timeline.html"]
+]);
+
+const mimeTypes = new Map([
+  [".html", "text/html; charset=utf-8"],
+  [".css", "text/css; charset=utf-8"],
+  [".js", "text/javascript; charset=utf-8"],
+  [".json", "application/json; charset=utf-8"],
+  [".png", "image/png"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".webp", "image/webp"],
+  [".svg", "image/svg+xml"]
+]);
+
+const server = createServer(async (request, response) => {
+  try {
+    const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
+
+    if (request.method === "GET" && url.pathname === "/api/status") {
+      return sendJson(response, 200, {
+        liveAI: Boolean(openAiKey),
+        model: openAiKey ? openAiModel : "sample-mode"
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/practice") {
+      const body = await readJson(request);
+      const payload = await createPractice(body);
+      return sendJson(response, 200, payload);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/grade") {
+      const body = await readJson(request);
+      const payload = await gradePractice(body);
+      return sendJson(response, 200, payload);
+    }
+
+    if (request.method === "GET" || request.method === "HEAD") {
+      return serveStatic(url.pathname, request.method, response);
+    }
+
+    sendJson(response, 405, { error: "Method not allowed" });
+  } catch (error) {
+    const status = Number(error.statusCode || 500);
+    sendJson(response, status, {
+      error: status === 500 ? "Something went wrong on the study server." : error.message
+    });
+  }
+});
+
+server.listen(port, () => {
+  console.log(`AP World Study Hub running at http://localhost:${port}`);
+});
+
+function loadDotEnv() {
+  const envPath = path.resolve(process.cwd(), ".env");
+  if (!existsSync(envPath)) return;
+
+  const lines = readFileSync(envPath, "utf8").split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const splitAt = line.indexOf("=");
+    if (splitAt === -1) continue;
+    const key = line.slice(0, splitAt).trim();
+    let value = line.slice(splitAt + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!process.env[key]) process.env[key] = value;
+  }
+}
+
+async function serveStatic(pathname, method, response) {
+  const fileRoute = routeFiles.get(pathname) || decodeURIComponent(pathname).replace(/^\/+/, "");
+  const absolutePath = path.resolve(publicDir, fileRoute);
+
+  if (absolutePath !== publicDir && !absolutePath.startsWith(publicDir + path.sep)) {
+    return sendJson(response, 403, { error: "Forbidden" });
+  }
+
+  let filePath = absolutePath;
+  const fileStats = await stat(filePath).catch(() => null);
+  if (fileStats?.isDirectory()) filePath = path.join(filePath, "index.html");
+
+  const content = await readFile(filePath).catch(() => null);
+  if (!content) return sendJson(response, 404, { error: "Not found" });
+
+  response.writeHead(200, {
+    "Content-Type": mimeTypes.get(path.extname(filePath).toLowerCase()) || "application/octet-stream",
+    "Cache-Control": filePath.includes(`${path.sep}assets${path.sep}`) ? "public, max-age=604800" : "no-cache"
+  });
+  if (method !== "HEAD") response.end(content);
+  else response.end();
+}
+
+function sendJson(response, status, payload) {
+  response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify(payload));
+}
+
+async function readJson(request) {
+  let raw = "";
+  for await (const chunk of request) {
+    raw += chunk;
+    if (raw.length > 250000) {
+      const error = new Error("Request body is too large.");
+      error.statusCode = 413;
+      throw error;
+    }
+  }
+  if (!raw.trim()) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const error = new Error("Expected JSON.");
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+function cleanText(value, fallback = "") {
+  return String(value || fallback).trim();
+}
+
+function normalizeType(type) {
+  const value = cleanText(type, "mcq").toLowerCase();
+  if (!["mcq", "saq", "dbq", "leq"].includes(value)) {
+    const error = new Error("Practice type must be mcq, saq, dbq, or leq.");
+    error.statusCode = 400;
+    throw error;
+  }
+  return value;
+}
+
+async function createPractice(body) {
+  const type = normalizeType(body.type);
+  const maxCount = type === "mcq" ? 10 : 1;
+  const count = Math.max(1, Math.min(maxCount, Number(body.count || (type === "mcq" ? 5 : 1))));
+  const request = {
+    type,
+    count,
+    topic: cleanText(body.topic, "mixed AP World units"),
+    period: cleanText(body.period, "any AP World period"),
+    difficulty: cleanText(body.difficulty, "AP exam style")
+  };
+
+  if (!openAiKey) {
+    return {
+      source: "sample",
+      warning: "Set OPENAI_API_KEY in .env for live AI-generated practice.",
+      ...samplePractice(request)
+    };
+  }
+
+  try {
+    const result = await createPracticeWithAI(request);
+    return {
+      source: "ai",
+      model: openAiModel,
+      ...normalizePracticeResult(result, request)
+    };
+  } catch (error) {
+    return {
+      source: "sample",
+      warning: `The AI request failed, so sample practice loaded instead. ${error.message}`,
+      ...samplePractice(request)
+    };
+  }
+}
+
+async function gradePractice(body) {
+  const type = normalizeType(body.type);
+  if (type === "mcq") {
+    const error = new Error("MCQs are graded in the browser.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const answer = cleanText(body.answer);
+  if (answer.length < 20) {
+    const error = new Error("Write a little more before asking for grading.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const question = body.question || {};
+  const request = { type, question, answer };
+
+  if (!openAiKey) {
+    return {
+      source: "sample",
+      warning: "Set OPENAI_API_KEY in .env for live AI grading.",
+      ...sampleGrade(request)
+    };
+  }
+
+  try {
+    const result = await gradeWithAI(request);
+    return {
+      source: "ai",
+      model: openAiModel,
+      ...normalizeGradeResult(result, type)
+    };
+  } catch (error) {
+    return {
+      source: "sample",
+      warning: `The AI grading request failed, so sample grading loaded instead. ${error.message}`,
+      ...sampleGrade(request)
+    };
+  }
+}
+
+async function createPracticeWithAI(request) {
+  const instructions = [
+    "You create original AP World History practice. Do not copy real College Board questions.",
+    "Keep questions historically accurate and aligned to AP World skills: causation, comparison, continuity and change, contextualization, evidence, sourcing, and argumentation.",
+    "Return valid JSON only. No markdown, no prose outside JSON.",
+    "Use this exact top-level shape: {\"title\":\"...\",\"items\":[...]}",
+    "Each item must include: id, type, period, skill, stimulus, prompt, choices, answer, explanation, rubric, documents, tags.",
+    "For MCQ, choices must be exactly four objects with id A-D and answer must be A, B, C, or D.",
+    "For SAQ, make a three-part prompt labeled A, B, and C. For DBQ, include 4-6 short invented document summaries. For LEQ, ask for a thesis-driven essay."
+  ].join(" ");
+
+  const prompt = [
+    `Practice type: ${request.type.toUpperCase()}`,
+    `Number of items: ${request.count}`,
+    `Topic focus: ${request.topic}`,
+    `Period focus: ${request.period}`,
+    `Difficulty: ${request.difficulty}`,
+    "Make the material useful for AP World History studying from c. 1200 to the present."
+  ].join("\n");
+
+  return callOpenAIJson(instructions, prompt);
+}
+
+async function gradeWithAI(request) {
+  const maxScore = { saq: 3, dbq: 7, leq: 6 }[request.type];
+  const instructions = [
+    "You are a careful AP World History writing grader.",
+    "Grade against the AP style expectations for the prompt type.",
+    "Be specific, fair, and useful. Do not be mean. Do not invent facts that are not in the response.",
+    "Return valid JSON only with this shape: {\"score\":number,\"maxScore\":number,\"level\":\"...\",\"feedback\":\"...\",\"strengths\":[...],\"improvements\":[...],\"rubricBreakdown\":[{\"label\":\"...\",\"earned\":true,\"note\":\"...\"}]}."
+  ].join(" ");
+
+  const prompt = [
+    `Prompt type: ${request.type.toUpperCase()}`,
+    `Maximum score: ${maxScore}`,
+    `Question JSON: ${JSON.stringify(request.question).slice(0, 12000)}`,
+    `Student response: ${request.answer}`
+  ].join("\n\n");
+
+  return callOpenAIJson(instructions, prompt);
+}
+
+async function callOpenAIJson(instructions, prompt) {
+  const payloads = [
+    {
+      model: openAiModel,
+      input: [
+        { role: "system", content: [{ type: "input_text", text: instructions }] },
+        { role: "user", content: [{ type: "input_text", text: prompt }] }
+      ],
+      text: { format: { type: "json_object" } }
+    },
+    {
+      model: openAiModel,
+      input: `${instructions}\n\n${prompt}\n\nReturn only JSON.`
+    }
+  ];
+
+  let lastError = null;
+  for (const payload of payloads) {
+    try {
+      const response = await fetch(responsesUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openAiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const details = await response.text();
+        throw new Error(`OpenAI returned ${response.status}: ${details.slice(0, 180)}`);
+      }
+
+      const data = await response.json();
+      const text = extractResponseText(data);
+      if (!text) throw new Error("OpenAI returned no text.");
+      return JSON.parse(stripJsonFence(text));
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("OpenAI request failed.");
+}
+
+function extractResponseText(data) {
+  if (typeof data.output_text === "string") return data.output_text;
+  if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+
+  const parts = [];
+  const walk = (value) => {
+    if (!value) return;
+    if (typeof value === "string") return;
+    if (Array.isArray(value)) {
+      value.forEach(walk);
+      return;
+    }
+    if (typeof value === "object") {
+      if (value.type === "output_text" && typeof value.text === "string") parts.push(value.text);
+      Object.values(value).forEach(walk);
+    }
+  };
+  walk(data.output);
+  return parts.join("\n").trim();
+}
+
+function stripJsonFence(text) {
+  return text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "");
+}
+
+function normalizePracticeResult(result, request) {
+  const fallback = samplePractice(request);
+  const items = Array.isArray(result.items) ? result.items : [];
+  const normalizedItems = items.slice(0, request.count).map((item, index) => normalizeItem(item, request, index));
+
+  return {
+    title: cleanText(result.title, fallback.title),
+    items: normalizedItems.length ? normalizedItems : fallback.items
+  };
+}
+
+function normalizeItem(item, request, index) {
+  const type = cleanText(item.type, request.type).toLowerCase();
+  const choices = Array.isArray(item.choices) ? item.choices : [];
+  return {
+    id: cleanText(item.id, `${request.type}-${Date.now()}-${index}`),
+    type: ["mcq", "saq", "dbq", "leq"].includes(type) ? type : request.type,
+    period: cleanText(item.period, request.period),
+    skill: cleanText(item.skill, "AP historical reasoning"),
+    stimulus: cleanText(item.stimulus),
+    prompt: cleanText(item.prompt, "Practice prompt unavailable."),
+    choices: choices.map((choice, choiceIndex) => ({
+      id: cleanText(choice.id, "ABCD"[choiceIndex] || String(choiceIndex + 1)).slice(0, 1).toUpperCase(),
+      text: cleanText(choice.text || choice.label || choice)
+    })).slice(0, 4),
+    answer: cleanText(item.answer).slice(0, 1).toUpperCase(),
+    explanation: cleanText(item.explanation, "Review the relevant AP World concept and historical evidence."),
+    rubric: Array.isArray(item.rubric) ? item.rubric.map((entry) => cleanText(entry)).filter(Boolean) : [],
+    documents: Array.isArray(item.documents) ? item.documents.map((entry) => cleanText(entry)).filter(Boolean) : [],
+    tags: Array.isArray(item.tags) ? item.tags.map((entry) => cleanText(entry)).filter(Boolean) : []
+  };
+}
+
+function normalizeGradeResult(result, type) {
+  const maxScore = { saq: 3, dbq: 7, leq: 6 }[type];
+  const score = Math.max(0, Math.min(maxScore, Number(result.score || 0)));
+  return {
+    score,
+    maxScore: Number(result.maxScore || maxScore),
+    level: cleanText(result.level, score >= maxScore * 0.75 ? "Strong" : "Developing"),
+    feedback: cleanText(result.feedback, "Use more specific evidence and connect it directly to the argument."),
+    strengths: Array.isArray(result.strengths) ? result.strengths.map((entry) => cleanText(entry)).filter(Boolean) : [],
+    improvements: Array.isArray(result.improvements) ? result.improvements.map((entry) => cleanText(entry)).filter(Boolean) : [],
+    rubricBreakdown: Array.isArray(result.rubricBreakdown) ? result.rubricBreakdown.map((entry) => ({
+      label: cleanText(entry.label, "Rubric point"),
+      earned: Boolean(entry.earned),
+      note: cleanText(entry.note)
+    })) : []
+  };
+}
+
+function samplePractice(request) {
+  if (request.type === "mcq") {
+    return {
+      title: "Sample AP World MCQ Set",
+      items: sampleMcqBank.slice(0, request.count).map((item, index) => ({
+        ...item,
+        id: `sample-mcq-${index + 1}`,
+        type: "mcq"
+      }))
+    };
+  }
+
+  const sample = sampleWritten[request.type];
+  return {
+    title: sample.title,
+    items: [{ ...sample.item, id: `sample-${request.type}-1`, type: request.type }]
+  };
+}
+
+function sampleGrade(request) {
+  const maxScore = { saq: 3, dbq: 7, leq: 6 }[request.type];
+  const words = request.answer.split(/\s+/).filter(Boolean).length;
+  const evidenceWords = ["because", "therefore", "for example", "evidence", "trade", "empire", "state", "continuity", "change"];
+  const evidenceHits = evidenceWords.filter((word) => request.answer.toLowerCase().includes(word)).length;
+  const rough = Math.min(maxScore, Math.max(1, Math.round((words / (request.type === "saq" ? 45 : 115)) + evidenceHits / 3)));
+
+  return {
+    score: rough,
+    maxScore,
+    level: rough >= maxScore * 0.75 ? "Strong sample score" : "Developing sample score",
+    feedback: "Sample grading is estimating structure, length, and evidence. Live AI grading will give more precise rubric feedback once OPENAI_API_KEY is set.",
+    strengths: [
+      "The response makes an attempt to answer the prompt.",
+      words > 80 ? "There is enough length to start developing evidence." : "The response is concise."
+    ],
+    improvements: [
+      "Name specific historical evidence and explain how it supports the claim.",
+      "Tie each paragraph or part directly back to the prompt wording."
+    ],
+    rubricBreakdown: [
+      { label: "Claim or direct answer", earned: words > 25, note: "Make the central answer explicit." },
+      { label: "Specific evidence", earned: evidenceHits >= 2, note: "Use named examples, not only broad categories." },
+      { label: "Historical reasoning", earned: evidenceHits >= 4, note: "Explain causation, comparison, or change over time." }
+    ]
+  };
+}
+
+const sampleMcqBank = [
+  {
+    period: "Period 1: c. 1200-c. 1450",
+    skill: "Causation",
+    stimulus: "A traveler describes caravans moving textiles, horses, paper, and luxury goods between oasis cities across Inner Asia.",
+    prompt: "Which development most directly helped make the exchange described in the stimulus possible?",
+    choices: [
+      { id: "A", text: "The expansion and protection of transregional trade routes under large land empires" },
+      { id: "B", text: "The decline of banking practices in commercial cities" },
+      { id: "C", text: "The elimination of all local religious traditions along trade routes" },
+      { id: "D", text: "The end of demand for luxury goods in Afro-Eurasia" }
+    ],
+    answer: "A",
+    explanation: "Large states and empires helped secure routes, standardize practices, and support long-distance commerce.",
+    rubric: [],
+    documents: [],
+    tags: ["Silk Roads", "trade", "land empires"]
+  },
+  {
+    period: "Period 2: c. 1450-c. 1750",
+    skill: "Continuity and change",
+    stimulus: "Silver mined in the Americas moved through European merchants to Asian markets, where it was exchanged for manufactured goods.",
+    prompt: "The pattern described in the stimulus best illustrates which broader change?",
+    choices: [
+      { id: "A", text: "The growth of a truly global trading system connecting the Americas, Europe, and Asia" },
+      { id: "B", text: "The disappearance of coerced labor systems in the Americas" },
+      { id: "C", text: "The isolation of Asian economies from maritime trade" },
+      { id: "D", text: "The replacement of silver by barter in all major economies" }
+    ],
+    answer: "A",
+    explanation: "American silver linked global markets and became central to early modern trade, especially with Asian demand.",
+    rubric: [],
+    documents: [],
+    tags: ["silver", "Columbian Exchange", "global trade"]
+  },
+  {
+    period: "Period 3: c. 1750-c. 1900",
+    skill: "Comparison",
+    stimulus: "Factories concentrated workers near machines powered first by water and then by steam engines.",
+    prompt: "Which comparison between industrialization in Britain and Japan is most accurate?",
+    choices: [
+      { id: "A", text: "Britain industrialized earlier through private enterprise, while Japan industrialized later with strong state direction" },
+      { id: "B", text: "Both industrialized only after becoming colonies of European empires" },
+      { id: "C", text: "Japan industrialized before Britain because of abundant coal in Hokkaido" },
+      { id: "D", text: "Neither country used textile production as part of industrial growth" }
+    ],
+    answer: "A",
+    explanation: "Britain led early industrialization, while Meiji Japan used state reforms and investment to industrialize rapidly.",
+    rubric: [],
+    documents: [],
+    tags: ["industrialization", "Meiji Japan", "Britain"]
+  },
+  {
+    period: "Period 4: c. 1900-present",
+    skill: "Contextualization",
+    stimulus: "New international institutions formed after 1945 to manage security, finance, development, and diplomacy.",
+    prompt: "The development described in the stimulus was most directly shaped by which context?",
+    choices: [
+      { id: "A", text: "The destruction of the Second World War and the desire to prevent another global conflict" },
+      { id: "B", text: "The complete end of ideological rivalry after 1918" },
+      { id: "C", text: "The decline of all nationalist movements after 1945" },
+      { id: "D", text: "The return of most states to mercantilist isolation" }
+    ],
+    answer: "A",
+    explanation: "Institutions such as the UN, IMF, and World Bank reflected postwar efforts to stabilize international relations.",
+    rubric: [],
+    documents: [],
+    tags: ["postwar order", "United Nations", "global institutions"]
+  },
+  {
+    period: "Period 2: c. 1450-c. 1750",
+    skill: "Causation",
+    stimulus: "Gunpowder weapons helped rulers expand armies, breach fortifications, and centralize authority.",
+    prompt: "Which state best demonstrates the process described in the stimulus?",
+    choices: [
+      { id: "A", text: "The Ottoman Empire during its expansion into southeastern Europe and the Middle East" },
+      { id: "B", text: "The Inca Empire before contact with Afro-Eurasian gunpowder weapons" },
+      { id: "C", text: "The city-states of classical Greece during the Persian Wars" },
+      { id: "D", text: "The Mongol Empire before the adoption of siege technologies" }
+    ],
+    answer: "A",
+    explanation: "The Ottomans used gunpowder artillery and firearms as part of imperial expansion and centralization.",
+    rubric: [],
+    documents: [],
+    tags: ["gunpowder empires", "Ottoman Empire", "state-building"]
+  }
+];
+
+const sampleWritten = {
+  saq: {
+    title: "Sample SAQ Practice",
+    item: {
+      period: "Period 2: c. 1450-c. 1750",
+      skill: "Causation",
+      stimulus: "Many early modern empires expanded by combining military innovation, tax systems, and claims to religious or political legitimacy.",
+      prompt: "A. Identify ONE military technology used by an early modern empire. B. Explain ONE way that technology helped expand or maintain empire. C. Explain ONE non-military method rulers used to legitimize authority.",
+      choices: [],
+      answer: "",
+      explanation: "A strong answer names a technology, explains its effect, and gives a separate legitimacy strategy.",
+      rubric: [
+        "A point: identifies a relevant military technology such as artillery, firearms, or naval cannon.",
+        "B point: explains how the technology supported conquest, defense, or centralization.",
+        "C point: explains legitimacy through religion, monumental architecture, bureaucracy, law, or court ritual."
+      ],
+      documents: [],
+      tags: ["empires", "gunpowder", "legitimacy"]
+    }
+  },
+  dbq: {
+    title: "Sample DBQ Practice",
+    item: {
+      period: "Period 3: c. 1750-c. 1900",
+      skill: "Argumentation",
+      stimulus: "Use the documents and your knowledge of world history to answer the prompt.",
+      prompt: "Evaluate the extent to which industrialization changed social structures in the period c. 1750-c. 1900.",
+      choices: [],
+      answer: "",
+      explanation: "A strong DBQ makes a defensible thesis, contextualizes industrialization, uses documents as evidence, and adds outside evidence.",
+      rubric: [
+        "Thesis or claim: 1 point.",
+        "Contextualization: 1 point.",
+        "Evidence from documents: up to 2 points.",
+        "Evidence beyond documents: 1 point.",
+        "Sourcing: 1 point.",
+        "Complexity: 1 point."
+      ],
+      documents: [
+        "Document 1: A factory rulebook limits worker lateness and regulates breaks.",
+        "Document 2: A reformer describes crowded urban housing near textile mills.",
+        "Document 3: A business owner praises machines for increasing output.",
+        "Document 4: A union petition asks for shorter hours and safer conditions.",
+        "Document 5: A government report notes women and children working in industrial towns."
+      ],
+      tags: ["industrialization", "social change", "labor"]
+    }
+  },
+  leq: {
+    title: "Sample LEQ Practice",
+    item: {
+      period: "Period 4: c. 1900-present",
+      skill: "Continuity and change",
+      stimulus: "",
+      prompt: "Evaluate the extent to which decolonization after 1945 changed political structures in Asia and Africa.",
+      choices: [],
+      answer: "",
+      explanation: "A strong LEQ has a defensible thesis, context, specific evidence, historical reasoning, and complexity.",
+      rubric: [
+        "Thesis or claim: 1 point.",
+        "Contextualization: 1 point.",
+        "Evidence: up to 2 points.",
+        "Analysis and reasoning: up to 2 points."
+      ],
+      documents: [],
+      tags: ["decolonization", "nationalism", "postwar"]
+    }
+  }
+};
