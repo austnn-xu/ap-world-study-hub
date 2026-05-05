@@ -11,7 +11,7 @@ A full AP World History study website with:
 - AI-generated MCQ, SAQ, DBQ, and LEQ practice
 - AI grading for written SAQ, DBQ, and LEQ responses
 - Missed MCQ storage in the browser so you can review wrong answers later
-- A built-in AP World timeline page
+- A button that opens the original AP World timeline project
 - No npm dependencies required
 
 ## Use It Online
@@ -22,7 +22,7 @@ Open:
 https://austnn-xu.github.io/ap-world-study-hub/
 ```
 
-The online GitHub Pages version works as a static preview with built-in sample questions, timeline filters, wrong-MCQ review, and dark/light mode.
+The online GitHub Pages version works as a static preview with built-in sample questions, wrong-MCQ review, dark/light mode, and a link to the original timeline.
 
 ## Run It Locally For Live AI
 

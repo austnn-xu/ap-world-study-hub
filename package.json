@@ -1,7 +1,7 @@
 {
   "name": "ap-world-study-hub",
   "version": "1.0.0",
-  "description": "AP World History study website with AI practice, grading, wrong MCQ review, and a timeline.",
+  "description": "AP World History study website with AI practice, grading, wrong MCQ review, and a timeline link.",
   "type": "module",
   "scripts": {
     "start": "node server.mjs",

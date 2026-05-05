@@ -259,7 +259,10 @@ async function createPracticeWithAI(request) {
     "Use this exact top-level shape: {\"title\":\"...\",\"items\":[...]}",
     "Each item must include: id, type, period, skill, stimulus, prompt, choices, answer, explanation, rubric, documents, tags.",
     "For MCQ, choices must be exactly four objects with id A-D and answer must be A, B, C, or D.",
-    "For SAQ, make a three-part prompt labeled A, B, and C. For DBQ, include 4-6 short invented document summaries. For LEQ, ask for a thesis-driven essay."
+    "For MCQ sets with more than one item, vary the correct answer letters across A, B, C, and D. Do not make every answer A.",
+    "For SAQ, make a three-part prompt labeled A, B, and C.",
+    "For DBQ, include 4-6 invented AP-style documents, not summaries. Each document must be an object with title, source, date, context, and text. The text should be 70-140 words and read like a short primary source excerpt, data table description, petition, speech, law, letter, newspaper passage, or report excerpt.",
+    "For LEQ, ask for a thesis-driven essay."
   ].join(" ");
 
   const prompt = [
@@ -371,10 +374,11 @@ function normalizePracticeResult(result, request) {
   const fallback = samplePractice(request);
   const items = Array.isArray(result.items) ? result.items : [];
   const normalizedItems = items.slice(0, request.count).map((item, index) => normalizeItem(item, request, index));
+  const finalItems = request.type === "mcq" ? rebalanceMcqAnswers(normalizedItems) : normalizedItems;
 
   return {
     title: cleanText(result.title, fallback.title),
-    items: normalizedItems.length ? normalizedItems : fallback.items
+    items: finalItems.length ? finalItems : fallback.items
   };
 }
 
@@ -395,9 +399,54 @@ function normalizeItem(item, request, index) {
     answer: cleanText(item.answer).slice(0, 1).toUpperCase(),
     explanation: cleanText(item.explanation, "Review the relevant AP World concept and historical evidence."),
     rubric: Array.isArray(item.rubric) ? item.rubric.map((entry) => cleanText(entry)).filter(Boolean) : [],
-    documents: Array.isArray(item.documents) ? item.documents.map((entry) => cleanText(entry)).filter(Boolean) : [],
+    documents: Array.isArray(item.documents) ? item.documents.map((entry, docIndex) => normalizeDocument(entry, docIndex)).filter(Boolean) : [],
     tags: Array.isArray(item.tags) ? item.tags.map((entry) => cleanText(entry)).filter(Boolean) : []
   };
+}
+
+function normalizeDocument(entry, index) {
+  if (!entry) return null;
+  if (typeof entry === "string") {
+    return {
+      title: `Document ${index + 1}`,
+      source: "",
+      date: "",
+      context: "",
+      text: cleanText(entry)
+    };
+  }
+
+  return {
+    title: cleanText(entry.title, `Document ${index + 1}`),
+    source: cleanText(entry.source || entry.author || entry.attribution),
+    date: cleanText(entry.date || entry.year),
+    context: cleanText(entry.context || entry.description),
+    text: cleanText(entry.text || entry.excerpt || entry.content)
+  };
+}
+
+function rebalanceMcqAnswers(items) {
+  const targets = ["B", "D", "C", "A"];
+  return items.map((item, index) => {
+    if (!Array.isArray(item.choices) || item.choices.length !== 4 || !item.answer) return item;
+    const target = targets[index % targets.length];
+    const currentAnswer = cleanText(item.answer).slice(0, 1).toUpperCase();
+    const correctIndex = item.choices.findIndex((choice) => cleanText(choice.id).slice(0, 1).toUpperCase() === currentAnswer);
+    const targetIndex = "ABCD".indexOf(target);
+    if (correctIndex === -1 || targetIndex === -1) return item;
+
+    const choices = item.choices.map((choice) => ({ ...choice }));
+    const [correctChoice] = choices.splice(correctIndex, 1);
+    choices.splice(targetIndex, 0, correctChoice);
+    return {
+      ...item,
+      choices: choices.map((choice, choiceIndex) => ({
+        id: "ABCD"[choiceIndex],
+        text: choice.text
+      })),
+      answer: target
+    };
+  });
 }
 
 function normalizeGradeResult(result, type) {
@@ -422,11 +471,11 @@ function samplePractice(request) {
   if (request.type === "mcq") {
     return {
       title: "Sample AP World MCQ Set",
-      items: sampleMcqBank.slice(0, request.count).map((item, index) => ({
+      items: rebalanceMcqAnswers(sampleMcqBank.slice(0, request.count).map((item, index) => ({
         ...item,
         id: `sample-mcq-${index + 1}`,
         type: "mcq"
-      }))
+      })))
     };
   }
 
@@ -472,12 +521,12 @@ const sampleMcqBank = [
     stimulus: "A traveler describes caravans moving textiles, horses, paper, and luxury goods between oasis cities across Inner Asia.",
     prompt: "Which development most directly helped make the exchange described in the stimulus possible?",
     choices: [
-      { id: "A", text: "The expansion and protection of transregional trade routes under large land empires" },
-      { id: "B", text: "The decline of banking practices in commercial cities" },
+      { id: "A", text: "The decline of banking practices in commercial cities" },
+      { id: "B", text: "The expansion and protection of transregional trade routes under large land empires" },
       { id: "C", text: "The elimination of all local religious traditions along trade routes" },
       { id: "D", text: "The end of demand for luxury goods in Afro-Eurasia" }
     ],
-    answer: "A",
+    answer: "B",
     explanation: "Large states and empires helped secure routes, standardize practices, and support long-distance commerce.",
     rubric: [],
     documents: [],
@@ -489,12 +538,12 @@ const sampleMcqBank = [
     stimulus: "Silver mined in the Americas moved through European merchants to Asian markets, where it was exchanged for manufactured goods.",
     prompt: "The pattern described in the stimulus best illustrates which broader change?",
     choices: [
-      { id: "A", text: "The growth of a truly global trading system connecting the Americas, Europe, and Asia" },
+      { id: "A", text: "The replacement of silver by barter in all major economies" },
       { id: "B", text: "The disappearance of coerced labor systems in the Americas" },
       { id: "C", text: "The isolation of Asian economies from maritime trade" },
-      { id: "D", text: "The replacement of silver by barter in all major economies" }
+      { id: "D", text: "The growth of a truly global trading system connecting the Americas, Europe, and Asia" }
     ],
-    answer: "A",
+    answer: "D",
     explanation: "American silver linked global markets and became central to early modern trade, especially with Asian demand.",
     rubric: [],
     documents: [],
@@ -506,12 +555,12 @@ const sampleMcqBank = [
     stimulus: "Factories concentrated workers near machines powered first by water and then by steam engines.",
     prompt: "Which comparison between industrialization in Britain and Japan is most accurate?",
     choices: [
-      { id: "A", text: "Britain industrialized earlier through private enterprise, while Japan industrialized later with strong state direction" },
+      { id: "A", text: "Neither country used textile production as part of industrial growth" },
       { id: "B", text: "Both industrialized only after becoming colonies of European empires" },
-      { id: "C", text: "Japan industrialized before Britain because of abundant coal in Hokkaido" },
-      { id: "D", text: "Neither country used textile production as part of industrial growth" }
+      { id: "C", text: "Britain industrialized earlier through private enterprise, while Japan industrialized later with strong state direction" },
+      { id: "D", text: "Japan industrialized before Britain because of abundant coal in Hokkaido" }
     ],
-    answer: "A",
+    answer: "C",
     explanation: "Britain led early industrialization, while Meiji Japan used state reforms and investment to industrialize rapidly.",
     rubric: [],
     documents: [],
@@ -540,12 +589,12 @@ const sampleMcqBank = [
     stimulus: "Gunpowder weapons helped rulers expand armies, breach fortifications, and centralize authority.",
     prompt: "Which state best demonstrates the process described in the stimulus?",
     choices: [
-      { id: "A", text: "The Ottoman Empire during its expansion into southeastern Europe and the Middle East" },
+      { id: "A", text: "The Mongol Empire before the adoption of siege technologies" },
       { id: "B", text: "The Inca Empire before contact with Afro-Eurasian gunpowder weapons" },
       { id: "C", text: "The city-states of classical Greece during the Persian Wars" },
-      { id: "D", text: "The Mongol Empire before the adoption of siege technologies" }
+      { id: "D", text: "The Ottoman Empire during its expansion into southeastern Europe and the Middle East" }
     ],
-    answer: "A",
+    answer: "D",
     explanation: "The Ottomans used gunpowder artillery and firearms as part of imperial expansion and centralization.",
     rubric: [],
     documents: [],
@@ -592,11 +641,41 @@ const sampleWritten = {
         "Complexity: 1 point."
       ],
       documents: [
-        "Document 1: A factory rulebook limits worker lateness and regulates breaks.",
-        "Document 2: A reformer describes crowded urban housing near textile mills.",
-        "Document 3: A business owner praises machines for increasing output.",
-        "Document 4: A union petition asks for shorter hours and safer conditions.",
-        "Document 5: A government report notes women and children working in industrial towns."
+        {
+          title: "Document 1",
+          source: "Rules posted by the owner of a Manchester textile mill",
+          date: "1833",
+          context: "Factory owners attempted to discipline a large wage-labor workforce.",
+          text: "Any worker arriving after the bell shall lose one quarter day's wages. Talking at the frames, leaving the room without permission, or damaging thread through carelessness shall be fined. Children employed as piecers must remain at their assigned machines until relieved. The overseer is instructed to report idleness immediately, for the success of the mill depends upon regular motion and punctual attendance."
+        },
+        {
+          title: "Document 2",
+          source: "Letter from a textile worker to a local newspaper in northern England",
+          date: "1842",
+          context: "Industrial workers increasingly criticized working conditions in print.",
+          text: "We labor from early morning until the lamps are lit, breathing lint and heat while the engines never rest. My eldest daughter is twelve and earns a little beside me, but she returns home too tired to read. The masters speak of progress, yet in our street several families sleep in one damp room. If machines enrich the nation, workers ask why our hours lengthen and our bread remains dear."
+        },
+        {
+          title: "Document 3",
+          source: "Speech by an Indian merchant in Bombay discussing mechanized cotton imports",
+          date: "1877",
+          context: "Industrial production reshaped global trade and colonial economies.",
+          text: "Cloth once woven by skilled hands in our towns now arrives by the shipload from Lancashire, priced so low that many local weavers cannot compete. Some merchants profit by carrying these goods inland, but artisans complain that the new trade reduces them to debt. Railways and steamships have enlarged commerce, yet they also bind our markets to factories far beyond our shores."
+        },
+        {
+          title: "Document 4",
+          source: "Petition from women workers in a Japanese silk-reeling factory",
+          date: "1898",
+          context: "Meiji industrialization expanded factory work for young women.",
+          text: "We ask that dormitory rules be made less severe and that wages promised by recruiters be paid in full. Many of us left farming villages to help our families meet taxes, but deductions for food and lodging leave little to send home. We do not reject work for the nation; we ask only that supervisors stop extending hours when export orders rise."
+        },
+        {
+          title: "Document 5",
+          source: "Excerpt from a municipal health report in Berlin",
+          date: "1901",
+          context: "Rapid urban growth led governments to investigate public health problems.",
+          text: "The industrial districts continue to receive migrants faster than adequate housing can be built. Tenements near workshops show high rates of respiratory illness, especially among children. The city recommends improved drainage, limits on overcrowding, and inspection of factories that release smoke into residential streets. Economic growth has increased employment, but it has also created public burdens requiring state action."
+        }
       ],
       tags: ["industrialization", "social change", "labor"]
     }

@@ -125,7 +125,7 @@
   }
 
   function renderWritten(item, warning) {
-    const documents = (item.documents || []).map((documentText) => `<li>${escapeHtml(documentText)}</li>`).join("");
+    const documents = (item.documents || []).map((document, index) => renderDocument(document, index)).join("");
     const rubric = (item.rubric || []).map((line) => `<li>${escapeHtml(line)}</li>`).join("");
 
     return `
@@ -138,7 +138,7 @@
         </div>
         ${item.stimulus ? `<div class="stimulus">${escapeHtml(item.stimulus)}</div>` : ""}
         <h2>${escapeHtml(item.prompt)}</h2>
-        ${documents ? `<div class="document-box"><h3>Documents</h3><ol>${documents}</ol></div>` : ""}
+        ${documents ? `<div class="document-box"><h3>Documents</h3><ol class="document-list">${documents}</ol></div>` : ""}
         <label class="response-label" for="studentResponse">Your response</label>
         <textarea id="studentResponse" rows="${type === "saq" ? "8" : "16"}" placeholder="Write your response here."></textarea>
         <div class="question-actions">
@@ -257,6 +257,29 @@
     return String(value || "").trim().slice(0, 1).toUpperCase();
   }
 
+  function renderDocument(document, index) {
+    if (typeof document === "string") {
+      return `
+        <li class="document-item">
+          <div class="document-title">Document ${index + 1}</div>
+          <p class="document-text">${escapeHtml(document)}</p>
+        </li>
+      `;
+    }
+
+    const title = document?.title || `Document ${index + 1}`;
+    const sourceParts = [document?.source, document?.date].filter(Boolean).join(", ");
+    const context = document?.context ? `<div class="document-source">${escapeHtml(document.context)}</div>` : "";
+    return `
+      <li class="document-item">
+        <div class="document-title">${escapeHtml(title)}</div>
+        ${sourceParts ? `<div class="document-source">${escapeHtml(sourceParts)}</div>` : ""}
+        ${context}
+        <p class="document-text">${escapeHtml(document?.text || "")}</p>
+      </li>
+    `;
+  }
+
   function clientPracticeFallback(practiceType) {
     const shared = {
       period: "Period 2: c. 1450-c. 1750",
@@ -279,12 +302,12 @@
             stimulus: "Merchants, missionaries, and envoys traveled across Mongol-controlled routes linking China, Central Asia, Persia, and Europe.",
             prompt: "Which outcome most directly resulted from the situation described?",
             choices: [
-              { id: "A", text: "Increased cross-cultural exchange across Eurasia" },
-              { id: "B", text: "The permanent end of all nomadic states" },
+              { id: "A", text: "The permanent end of all nomadic states" },
+              { id: "B", text: "Increased cross-cultural exchange across Eurasia" },
               { id: "C", text: "The disappearance of luxury-goods trade" },
               { id: "D", text: "The isolation of China from Afro-Eurasia" }
             ],
-            answer: "A",
+            answer: "B",
             explanation: "Mongol rule protected routes and helped ideas, goods, technologies, and diseases move across Eurasia."
           },
           {
@@ -295,12 +318,12 @@
             stimulus: "Industrial factories concentrated workers near machines and used new sources of power to increase production.",
             prompt: "Which social change was most closely connected to industrialization?",
             choices: [
-              { id: "A", text: "The growth of urban working classes" },
+              { id: "A", text: "The disappearance of wage labor" },
               { id: "B", text: "The complete end of migration" },
               { id: "C", text: "The decline of all consumer markets" },
-              { id: "D", text: "The disappearance of wage labor" }
+              { id: "D", text: "The growth of urban working classes" }
             ],
-            answer: "A",
+            answer: "D",
             explanation: "Factories drew workers into cities and contributed to new industrial working-class communities."
           },
           {
@@ -311,12 +334,12 @@
             stimulus: "After 1945, many colonized peoples used nationalism and international pressure to demand sovereignty.",
             prompt: "The development described is best understood in the context of",
             choices: [
-              { id: "A", text: "decolonization after World War II" },
+              { id: "A", text: "the beginning of the Neolithic Revolution" },
               { id: "B", text: "the first wave of maritime exploration" },
-              { id: "C", text: "the spread of Buddhism along the Silk Roads" },
-              { id: "D", text: "the beginning of the Neolithic Revolution" }
+              { id: "C", text: "decolonization after World War II" },
+              { id: "D", text: "the spread of Buddhism along the Silk Roads" }
             ],
-            answer: "A",
+            answer: "C",
             explanation: "World War II weakened European empires and strengthened anti-colonial nationalist movements."
           }
         ]
@@ -340,10 +363,34 @@
         stimulus: "Use the documents and your knowledge of world history to answer the prompt.",
         prompt: "Evaluate the extent to which industrialization changed labor systems in the period c. 1750-c. 1900.",
         documents: [
-          "Document 1: A factory rulebook regulates worker arrival times and fines.",
-          "Document 2: A reformer describes crowded housing in an industrial city.",
-          "Document 3: A labor petition asks for shorter hours.",
-          "Document 4: A factory owner argues machines make goods cheaper."
+          {
+            title: "Document 1",
+            source: "Rules posted by the owner of a Manchester textile mill",
+            date: "1833",
+            context: "Factory owners attempted to discipline a large wage-labor workforce.",
+            text: "Any worker arriving after the bell shall lose one quarter day's wages. Talking at the frames, leaving the room without permission, or damaging thread through carelessness shall be fined. Children employed as piecers must remain at their assigned machines until relieved. The overseer is instructed to report idleness immediately, for the success of the mill depends upon regular motion and punctual attendance."
+          },
+          {
+            title: "Document 2",
+            source: "Letter from a textile worker to a local newspaper in northern England",
+            date: "1842",
+            context: "Industrial workers increasingly criticized working conditions in print.",
+            text: "We labor from early morning until the lamps are lit, breathing lint and heat while the engines never rest. My eldest daughter is twelve and earns a little beside me, but she returns home too tired to read. The masters speak of progress, yet in our street several families sleep in one damp room."
+          },
+          {
+            title: "Document 3",
+            source: "Speech by an Indian merchant in Bombay discussing mechanized cotton imports",
+            date: "1877",
+            context: "Industrial production reshaped global trade and colonial economies.",
+            text: "Cloth once woven by skilled hands in our towns now arrives by the shipload from Lancashire, priced so low that many local weavers cannot compete. Some merchants profit by carrying these goods inland, but artisans complain that the new trade reduces them to debt."
+          },
+          {
+            title: "Document 4",
+            source: "Petition from women workers in a Japanese silk-reeling factory",
+            date: "1898",
+            context: "Meiji industrialization expanded factory work for young women.",
+            text: "We ask that dormitory rules be made less severe and that wages promised by recruiters be paid in full. Many of us left farming villages to help our families meet taxes, but deductions for food and lodging leave little to send home."
+          }
         ],
         rubric: ["Thesis", "Contextualization", "Document evidence", "Outside evidence", "Sourcing", "Complexity"]
       },
