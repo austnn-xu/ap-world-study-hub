@@ -1,5 +1,11 @@
 # AP World Study Hub
 
+Live site:
+
+https://austnn-xu.github.io/ap-world-study-hub/
+
+This GitHub page is the code/instructions page. The actual website is the link above.
+
 A full AP World History study website with:
 
 - AI-generated MCQ, SAQ, DBQ, and LEQ practice
@@ -8,7 +14,17 @@ A full AP World History study website with:
 - A built-in AP World timeline page
 - No npm dependencies required
 
-## Run It
+## Use It Online
+
+Open:
+
+```text
+https://austnn-xu.github.io/ap-world-study-hub/
+```
+
+The online GitHub Pages version works as a static preview with built-in sample questions, timeline filters, wrong-MCQ review, and dark/light mode.
+
+## Run It Locally For Live AI
 
 ```bash
 node server.mjs
@@ -20,7 +36,7 @@ Then open:
 http://localhost:4173
 ```
 
-## Turn On Live AI
+## Turn On Live AI Locally
 
 Copy `.env.example` to `.env`, then add your key:
 
