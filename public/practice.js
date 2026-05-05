@@ -8,6 +8,7 @@
     dbq: { title: "DBQ Practice", count: 1, button: "Generate DBQ" },
     leq: { title: "LEQ Practice", count: 1, button: "Generate LEQ" }
   };
+  const apiRoot = window.APWorldStore?.apiRoot || "";
 
   const state = {
     items: [],
@@ -31,7 +32,7 @@
     setLoading(true, labels[type].button);
     state.reviewMode = false;
     try {
-      const response = await fetch("/api/practice", {
+      const response = await fetch(`${apiRoot}/api/practice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -184,7 +185,7 @@
     resultBox.innerHTML = "<strong>Reading your response...</strong>";
 
     try {
-      const response = await fetch("/api/grade", {
+      const response = await fetch(`${apiRoot}/api/grade`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, question: item, answer })

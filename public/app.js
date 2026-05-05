@@ -1,5 +1,9 @@
 (function () {
   const missedKey = "apworld.missed.mcq.v1";
+  const themeKey = "apworld.theme.v1";
+  const apiRoot = window.location.protocol === "file:" ? "http://localhost:4173" : "";
+
+  applyTheme(readTheme());
 
   function readMissed() {
     try {
@@ -64,11 +68,52 @@
     });
   }
 
+  function readTheme() {
+    const stored = localStorage.getItem(themeKey);
+    return stored === "light" ? "light" : "dark";
+  }
+
+  function applyTheme(theme) {
+    const nextTheme = theme === "light" ? "light" : "dark";
+    document.documentElement.dataset.theme = nextTheme;
+    document.documentElement.style.colorScheme = nextTheme;
+    localStorage.setItem(themeKey, nextTheme);
+    updateThemeToggle(nextTheme);
+  }
+
+  function updateThemeToggle(theme) {
+    const button = document.querySelector("[data-theme-toggle]");
+    if (!button) return;
+    const isDark = theme === "dark";
+    button.setAttribute("aria-pressed", String(isDark));
+    button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+    button.innerHTML = `
+      <span class="theme-toggle-dot" aria-hidden="true"></span>
+      <span>${isDark ? "Dark" : "Light"}</span>
+    `;
+  }
+
+  function addThemeToggle() {
+    const header = document.querySelector(".site-header");
+    if (!header || header.querySelector("[data-theme-toggle]")) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "theme-toggle";
+    button.dataset.themeToggle = "true";
+    button.addEventListener("click", () => {
+      const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+      applyTheme(current === "dark" ? "light" : "dark");
+    });
+    header.appendChild(button);
+    updateThemeToggle(readTheme());
+  }
+
   async function updateAiStatus() {
     const nodes = document.querySelectorAll("[data-ai-status]");
     if (!nodes.length) return;
     try {
-      const response = await fetch("/api/status");
+      const response = await fetch(`${apiRoot}/api/status`);
       const status = await response.json();
       const label = status.liveAI ? `Live AI: ${status.model}` : "Sample mode";
       nodes.forEach((node) => {
@@ -86,10 +131,12 @@
     saveMissed,
     removeMissed,
     makeQuestionId,
-    updateMissedCount
+    updateMissedCount,
+    apiRoot
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    addThemeToggle();
     updateMissedCount();
     updateAiStatus();
   });

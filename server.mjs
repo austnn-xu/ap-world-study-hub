@@ -38,6 +38,10 @@ const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
 
+    if (request.method === "OPTIONS") {
+      return sendEmpty(response, 204);
+    }
+
     if (request.method === "GET" && url.pathname === "/api/status") {
       return sendJson(response, 200, {
         liveAI: Boolean(openAiKey),
@@ -117,8 +121,22 @@ async function serveStatic(pathname, method, response) {
 }
 
 function sendJson(response, status, payload) {
-  response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  response.writeHead(status, {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json; charset=utf-8"
+  });
   response.end(JSON.stringify(payload));
+}
+
+function sendEmpty(response, status) {
+  response.writeHead(status, {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+  });
+  response.end();
 }
 
 async function readJson(request) {
