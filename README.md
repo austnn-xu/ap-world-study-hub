@@ -38,7 +38,8 @@ https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Faustnn-xu
 
 ```text
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_FALLBACK_MODELS=gemini-2.0-flash,gemini-2.0-flash-lite,gemini-flash-lite-latest
 ```
 
 3. Click Deploy. The Vercel URL it gives you is the public site with live AI.
@@ -61,7 +62,8 @@ Copy `.env.example` to `.env`, then add your key:
 
 ```text
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_FALLBACK_MODELS=gemini-2.0-flash,gemini-2.0-flash-lite,gemini-flash-lite-latest
 PORT=4173
 ```
 

@@ -10,7 +10,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "public");
 const port = Number(process.env.PORT || 4173);
 const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
-const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+const geminiFallbackModels = process.env.GEMINI_FALLBACK_MODELS || "gemini-2.0-flash,gemini-2.0-flash-lite,gemini-flash-lite-latest";
+const geminiModels = uniqueList([geminiModel, ...geminiFallbackModels.split(",").map((model) => model.trim())]);
 const geminiApiUrl = (process.env.GEMINI_API_URL || "https://generativelanguage.googleapis.com/v1beta").replace(/\/+$/, "");
 
 const routeFiles = new Map([
@@ -86,8 +88,13 @@ export function getStatusPayload() {
   return {
     liveAI: Boolean(geminiKey),
     provider: geminiKey ? "Gemini" : "Sample",
-    model: geminiKey ? geminiModel : "sample-mode"
+    model: geminiKey ? geminiModel : "sample-mode",
+    fallbackModels: geminiKey ? geminiModels.slice(1) : []
   };
+}
+
+function uniqueList(values) {
+  return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
 }
 
 function loadDotEnv() {
@@ -232,7 +239,7 @@ export async function createPractice(body) {
     const result = await createPracticeWithAI(request);
     return {
       source: "ai",
-      model: geminiModel,
+      model: result.__model || geminiModel,
       ...normalizePracticeResult(result, request)
     };
   } catch (error) {
@@ -274,7 +281,7 @@ export async function gradePractice(body) {
     const result = await gradeWithAI(request);
     return {
       source: "ai",
-      model: geminiModel,
+      model: result.__model || geminiModel,
       ...normalizeGradeResult(result, type)
     };
   } catch (error) {
@@ -339,7 +346,6 @@ async function gradeWithAI(request) {
 }
 
 async function callGeminiJson(instructions, prompt) {
-  const endpoint = `${geminiApiUrl}/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiKey)}`;
   const body = JSON.stringify({
     systemInstruction: {
       parts: [{ text: instructions }]
@@ -357,30 +363,38 @@ async function callGeminiJson(instructions, prompt) {
   });
 
   let lastError;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body
-      });
+  for (const model of geminiModels) {
+    const endpoint = `${geminiApiUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(geminiKey)}`;
 
-      if (!response.ok) {
-        const details = await response.text();
-        const error = new Error(`Gemini returned ${response.status}: ${details.slice(0, 180)}`);
-        error.statusCode = response.status;
-        throw error;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body
+        });
+
+        if (!response.ok) {
+          const details = await response.text();
+          const error = new Error(`Gemini ${model} returned ${response.status}: ${details.slice(0, 180)}`);
+          error.statusCode = response.status;
+          throw error;
+        }
+
+        const data = await response.json();
+        const text = extractResponseText(data);
+        if (!text) throw new Error(`Gemini ${model} returned no text.`);
+        const parsed = JSON.parse(stripJsonFence(text));
+        parsed.__model = model;
+        return parsed;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 2 || !shouldRetryGemini(error)) break;
+        await wait(800 + attempt * 1200);
       }
-
-      const data = await response.json();
-      const text = extractResponseText(data);
-      if (!text) throw new Error("Gemini returned no text.");
-      return JSON.parse(stripJsonFence(text));
-    } catch (error) {
-      lastError = error;
-      if (attempt === 2 || !shouldRetryGemini(error)) break;
-      await wait(800 + attempt * 1200);
     }
+
+    if (!shouldRetryGemini(lastError)) break;
   }
 
   throw lastError;
