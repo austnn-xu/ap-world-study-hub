@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/mcq", "destination": "/mcq.html" },
+    { "source": "/saq", "destination": "/saq.html" },
+    { "source": "/dbq", "destination": "/dbq.html" },
+    { "source": "/leq", "destination": "/leq.html" },
+    { "source": "/timeline", "destination": "/timeline.html" }
+  ]
+}

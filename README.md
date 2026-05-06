@@ -1,10 +1,10 @@
 # AP World Study Hub
 
-Live site:
+Static GitHub Pages preview:
 
 https://austnn-xu.github.io/ap-world-study-hub/
 
-This GitHub page is the code/instructions page. The actual website is the link above.
+The GitHub Pages link is a static preview. For the public site with live Gemini AI, deploy this same repo on Vercel so the `/api` routes can run securely.
 
 A full AP World History study website with:
 
@@ -14,7 +14,7 @@ A full AP World History study website with:
 - A button that opens the original AP World timeline project
 - No npm dependencies required
 
-## Use It Online
+## Use The Static Preview
 
 Open:
 
@@ -22,7 +22,26 @@ Open:
 https://austnn-xu.github.io/ap-world-study-hub/
 ```
 
-The online GitHub Pages version works as a static preview with built-in sample questions, wrong-MCQ review, dark/light mode, and a link to the original timeline.
+The GitHub Pages version works with built-in sample questions, wrong-MCQ review, dark/light mode, and the timeline link.
+
+## Put Live AI On The Public Site
+
+GitHub Pages cannot run Node or hide a Gemini key. Use Vercel for the real AI version:
+
+1. Open this deploy link:
+
+```text
+https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Faustnn-xu%2Fap-world-study-hub&env=GEMINI_API_KEY,GEMINI_MODEL&envDescription=Gemini%20API%20key%20for%20live%20AI&envLink=https%3A%2F%2Faistudio.google.com%2Fapp%2Fapikey
+```
+
+2. Add these environment variables in Vercel:
+
+```text
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+3. Click Deploy. The Vercel URL it gives you is the public site with live AI.
 
 ## Run It Locally For Live AI
 

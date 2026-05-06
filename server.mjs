@@ -34,7 +34,7 @@ const mimeTypes = new Map([
   [".svg", "image/svg+xml"]
 ]);
 
-const server = createServer(async (request, response) => {
+export async function handleRequest(request, response) {
   try {
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
 
@@ -43,11 +43,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/api/status") {
-      return sendJson(response, 200, {
-        liveAI: Boolean(geminiKey),
-        provider: geminiKey ? "Gemini" : "Sample",
-        model: geminiKey ? geminiModel : "sample-mode"
-      });
+      return sendJson(response, 200, getStatusPayload());
     }
 
     if (request.method === "POST" && url.pathname === "/api/practice") {
@@ -73,11 +69,26 @@ const server = createServer(async (request, response) => {
       error: status === 500 ? "Something went wrong on the study server." : error.message
     });
   }
-});
+}
 
-server.listen(port, () => {
-  console.log(`AP World Study Hub running at http://localhost:${port}`);
-});
+if (isDirectRun()) {
+  const server = createServer(handleRequest);
+  server.listen(port, () => {
+    console.log(`AP World Study Hub running at http://localhost:${port}`);
+  });
+}
+
+function isDirectRun() {
+  return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+}
+
+export function getStatusPayload() {
+  return {
+    liveAI: Boolean(geminiKey),
+    provider: geminiKey ? "Gemini" : "Sample",
+    model: geminiKey ? geminiModel : "sample-mode"
+  };
+}
 
 function loadDotEnv() {
   const envPath = path.resolve(process.cwd(), ".env");
@@ -176,7 +187,7 @@ function normalizeType(type) {
   return value;
 }
 
-async function createPractice(body) {
+export async function createPractice(body) {
   const type = normalizeType(body.type);
   const count = type === "mcq" ? 10 : 1;
   const request = {
@@ -211,7 +222,7 @@ async function createPractice(body) {
   }
 }
 
-async function gradePractice(body) {
+export async function gradePractice(body) {
   const type = normalizeType(body.type);
   if (type === "mcq") {
     const error = new Error("MCQs are graded in the browser.");
