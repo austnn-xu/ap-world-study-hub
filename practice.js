@@ -521,6 +521,20 @@
             date: "1898",
             context: "Meiji industrialization expanded factory work for young women.",
             text: "We ask that dormitory rules be made less severe and that wages promised by recruiters be paid in full. Many of us left farming villages to help our families meet taxes, but deductions for food and lodging leave little to send home."
+          },
+          {
+            title: "Document 5",
+            source: "Municipal health official reporting on industrial neighborhoods",
+            date: "Berlin, 1901",
+            context: "Rapid urban growth led governments to investigate public health problems.",
+            text: "The industrial districts continue to receive migrants faster than adequate housing can be built. Tenements near workshops show high rates of respiratory illness, especially among children. The city recommends improved drainage, limits on overcrowding, and inspection of factories that release smoke into residential streets."
+          },
+          {
+            title: "Document 6",
+            source: "Russian factory inspector describing labor discipline in a textile district",
+            date: "Moscow, 1892",
+            context: "Industrialization outside western Europe often relied on state oversight and strict factory discipline.",
+            text: "In the larger mills, bells determine the worker's day more than the church calendar once did. Peasant families recently arrived from nearby villages crowd into rented rooms and depend on wages paid by the factory office. Managers complain that rural habits make workers irregular, while workers complain that fines reduce already modest pay."
           }
         ],
         rubric: ["Thesis", "Contextualization", "Document evidence", "Outside evidence", "Sourcing", "Complexity"]

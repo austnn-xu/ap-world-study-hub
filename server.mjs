@@ -258,7 +258,7 @@ async function createPracticeWithAI(request) {
     "Return valid JSON only. No markdown, no prose outside JSON.",
     "Use this exact top-level shape: {\"title\":\"...\",\"items\":[...]}",
     "Each item must include: id, type, period, skill, stimulus, prompt, choices, answer, explanation, rubric, documents, tags.",
-    "Every item must include a documents array. MCQ and SAQ need at least 1 source document; DBQ needs 4-6 source documents; LEQ must use an empty documents array.",
+    "Every item must include a documents array. MCQ and SAQ need at least 1 source document; DBQ needs exactly 6 source documents; LEQ must use an empty documents array.",
     "Every document must be an object with text, source, date, context, and title. The text must be a full source-style excerpt of 60-140 words, not a summary.",
     "Write each document so the site can display it in this exact exam-style order: \"long quote or excerpt\" - \"specific person, role, or civilian in context\", \"specific date, dynasty, or time period\".",
     "The source field should be the person or group plus context, like \"Chinese merchant in Quanzhou describing Indian Ocean trade\". The date field should be specific, like \"Yuan dynasty, c. 1290\" or \"Manchester, 1842\".",
@@ -267,7 +267,7 @@ async function createPracticeWithAI(request) {
     "For MCQ sets with more than one item, vary the correct answer letters across A, B, C, and D. Do not make every answer A.",
     "Create exactly the requested number of separate items.",
     "For SAQ items, make one three-part prompt labeled A, B, and C based on at least one source document.",
-    "For DBQ items, include 4-6 invented AP-style source documents for each item.",
+    "For DBQ items, include exactly 6 invented AP-style source documents for each item so the student can choose 4 to write about.",
     "For LEQ items, ask for one thesis-driven essay only. Do not include any source document for LEQ."
   ].join(" ");
 
@@ -898,6 +898,13 @@ const sampleWritten = {
           date: "Berlin, 1901",
           context: "Rapid urban growth led governments to investigate public health problems.",
           text: "The industrial districts continue to receive migrants faster than adequate housing can be built. Tenements near workshops show high rates of respiratory illness, especially among children. The city recommends improved drainage, limits on overcrowding, and inspection of factories that release smoke into residential streets. Economic growth has increased employment, but it has also created public burdens requiring state action."
+        },
+        {
+          title: "Document 6",
+          source: "Russian factory inspector describing labor discipline in a textile district",
+          date: "Moscow, 1892",
+          context: "Industrialization outside western Europe often relied on state oversight and strict factory discipline.",
+          text: "In the larger mills, bells determine the worker's day more than the church calendar once did. Peasant families recently arrived from nearby villages crowd into rented rooms and depend on wages paid by the factory office. Managers complain that rural habits make workers irregular, while workers complain that fines for lateness, damaged thread, and talking reduce already modest pay. The ministry recommends closer inspection, for disorder in factories may become disorder in the streets."
         }
       ],
       tags: ["industrialization", "social change", "labor"]
