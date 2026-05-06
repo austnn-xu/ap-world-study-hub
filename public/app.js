@@ -1,5 +1,5 @@
 (function () {
-  const appVersion = "2026.05.06.5";
+  const appVersion = "2026.05.06.6";
   const missedKey = "apworld.missed.mcq.v1";
   const reviewKey = "apworld.reviews.v1";
   const themeKey = "apworld.theme.v2";

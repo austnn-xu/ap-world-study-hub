@@ -16,6 +16,11 @@
   --rgb-c: #ff6ab7;
   --good: #8bd77f;
   --bad: #ff7a96;
+  --mock-window-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(244, 245, 248, 0.9));
+  --mock-window-border: rgba(0, 0, 0, 0.09);
+  --mock-window-line: rgba(0, 0, 0, 0.16);
+  --mock-window-dot: rgba(0, 0, 0, 0.28);
+  --mock-choice-base: rgba(255, 255, 255, 0.58);
   --radius: 8px;
   --max: 1180px;
   --shadow: 0 22px 60px rgba(0, 0, 0, 0.1);
@@ -35,6 +40,11 @@ html[data-theme="dark"] {
   --faint: #6f6f78;
   --line: rgba(255, 255, 255, 0.1);
   --line-strong: rgba(255, 255, 255, 0.18);
+  --mock-window-bg: linear-gradient(145deg, rgba(31, 31, 35, 0.96), rgba(13, 13, 15, 0.92));
+  --mock-window-border: rgba(255, 255, 255, 0.11);
+  --mock-window-line: rgba(255, 255, 255, 0.18);
+  --mock-window-dot: rgba(255, 255, 255, 0.38);
+  --mock-choice-base: rgba(255, 255, 255, 0.04);
   --shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
   --glow: 0 0 36px rgba(94, 231, 255, 0.1), 0 0 60px rgba(255, 106, 183, 0.07);
 }
@@ -299,9 +309,9 @@ h1 {
   grid-column: 2;
   grid-row: 1 / span 5;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  border: 1px solid var(--mock-window-border);
   border-radius: 18px;
-  background: linear-gradient(145deg, rgba(31, 31, 35, 0.96), rgba(13, 13, 15, 0.92));
+  background: var(--mock-window-bg);
   box-shadow: var(--shadow);
   backdrop-filter: blur(22px);
   transform: perspective(1000px) rotateY(-8deg) rotateX(3deg);
@@ -384,7 +394,7 @@ h1 {
   width: 9px;
   height: 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.38);
+  background: var(--mock-window-dot);
 }
 
 .product-screen {
@@ -395,7 +405,7 @@ h1 {
   height: 12px;
   margin-bottom: 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--mock-window-line);
 }
 
 .product-line.long {
@@ -423,16 +433,16 @@ h1 {
 .product-choice.is-correct {
   border-color: rgba(139, 215, 127, 0.74);
   background:
-    linear-gradient(135deg, rgba(139, 215, 127, 0.28), rgba(139, 215, 127, 0.07)),
-    rgba(255, 255, 255, 0.06);
+    linear-gradient(135deg, rgba(139, 215, 127, 0.34), rgba(139, 215, 127, 0.08)),
+    var(--mock-choice-base);
   box-shadow: inset 0 0 20px rgba(139, 215, 127, 0.12);
 }
 
 .product-choice.is-wrong {
   border-color: rgba(255, 122, 150, 0.52);
   background:
-    linear-gradient(135deg, rgba(255, 122, 150, 0.22), rgba(255, 122, 150, 0.045)),
-    rgba(255, 255, 255, 0.04);
+    linear-gradient(135deg, rgba(255, 122, 150, 0.24), rgba(255, 122, 150, 0.055)),
+    var(--mock-choice-base);
 }
 
 .product-cursor {
