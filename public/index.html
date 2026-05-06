@@ -123,6 +123,48 @@
           <p>Jump straight into your AP World timeline for period review, major events, and big-picture connections.</p>
         </article>
       </section>
+
+      <section class="review-section" id="reviews" aria-label="Student reviews">
+        <div class="review-shell">
+          <div>
+            <span class="tile-kicker">Feedback</span>
+            <h2>Leave a quick review</h2>
+            <p>Drop a note for what feels good, what feels weird, or what should get fixed next.</p>
+          </div>
+          <button class="secondary-action" type="button" data-review-open>Make a Review</button>
+        </div>
+        <form class="review-form" data-review-form hidden>
+          <div class="review-fields">
+            <label>
+              Name
+              <input type="text" name="name" maxlength="40" placeholder="Your name">
+            </label>
+            <label class="anonymous-choice">
+              <input type="checkbox" name="anonymous">
+              <span>Go anonymous</span>
+            </label>
+            <label>
+              Rating
+              <select name="rating">
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Okay</option>
+                <option value="2">2 - Needs work</option>
+                <option value="1">1 - Rough</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Review
+            <textarea name="review" maxlength="700" rows="5" placeholder="Write your review here."></textarea>
+          </label>
+          <div class="review-actions">
+            <button class="primary-action" type="submit">Submit Review</button>
+            <button class="secondary-action" type="button" data-review-cancel>Cancel</button>
+          </div>
+        </form>
+        <div class="review-list" data-review-list></div>
+      </section>
     </main>
 
     <script src="app.js"></script>

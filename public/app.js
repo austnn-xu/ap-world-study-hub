@@ -1,5 +1,7 @@
 (function () {
+  const appVersion = "2026.05.06.3";
   const missedKey = "apworld.missed.mcq.v1";
+  const reviewKey = "apworld.reviews.v1";
   const themeKey = "apworld.theme.v2";
   const apiRoot = window.location.protocol === "file:" || window.location.hostname.endsWith("github.io") ? "http://localhost:4173" : "";
 
@@ -68,6 +70,20 @@
     });
   }
 
+  function readReviews() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(reviewKey) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeReviews(reviews) {
+    localStorage.setItem(reviewKey, JSON.stringify(reviews.slice(0, 25)));
+    renderReviews();
+  }
+
   function readTheme() {
     const stored = localStorage.getItem(themeKey);
     return stored === "dark" ? "dark" : "light";
@@ -128,18 +144,131 @@
     }
   }
 
+  function setupReviewForm() {
+    const openButton = document.querySelector("[data-review-open]");
+    const form = document.querySelector("[data-review-form]");
+    const cancelButton = document.querySelector("[data-review-cancel]");
+    if (!openButton || !form) return;
+
+    openButton.addEventListener("click", () => {
+      form.hidden = false;
+      openButton.hidden = true;
+      form.querySelector("textarea")?.focus();
+    });
+
+    cancelButton?.addEventListener("click", () => {
+      form.hidden = true;
+      openButton.hidden = false;
+      form.reset();
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const anonymous = data.get("anonymous") === "on";
+      const body = String(data.get("review") || "").trim();
+      if (body.length < 4) {
+        form.querySelector("textarea")?.focus();
+        return;
+      }
+
+      const name = anonymous ? "Anonymous" : String(data.get("name") || "").trim() || "Anonymous";
+      const rating = Math.max(1, Math.min(5, Number(data.get("rating") || 5)));
+      const nextReview = {
+        id: `review-${Date.now()}`,
+        name,
+        anonymous,
+        rating,
+        body,
+        version: appVersion,
+        createdAt: new Date().toISOString()
+      };
+      writeReviews([nextReview, ...readReviews()]);
+      form.reset();
+      form.hidden = true;
+      openButton.hidden = false;
+    });
+
+    renderReviews();
+  }
+
+  function renderReviews() {
+    const list = document.querySelector("[data-review-list]");
+    if (!list) return;
+    const reviews = readReviews();
+    if (!reviews.length) {
+      list.innerHTML = `<p class="small-note">No reviews yet.</p>`;
+      return;
+    }
+
+    list.innerHTML = reviews.slice(0, 4).map((review) => `
+      <article class="review-card">
+        <div>
+          <strong>${escapeHtml(review.name || "Anonymous")}</strong>
+          <span>${escapeHtml(`${Number(review.rating || 5)}/5`)}</span>
+        </div>
+        <p>${escapeHtml(review.body || "")}</p>
+      </article>
+    `).join("");
+  }
+
+  async function checkForUpdates() {
+    try {
+      const versionUrl = new URL("version.json", window.location.href);
+      versionUrl.searchParams.set("t", String(Date.now()));
+      const response = await fetch(versionUrl, { cache: "no-store" });
+      if (!response.ok) return;
+      const latest = await response.json();
+      if (latest.version && latest.version !== appVersion) showUpdateNotice(latest.version);
+    } catch {
+      // Update checks should never interrupt studying.
+    }
+  }
+
+  function showUpdateNotice(version) {
+    if (document.querySelector("[data-update-notice]")) return;
+    const notice = document.createElement("aside");
+    notice.className = "update-notice";
+    notice.dataset.updateNotice = "true";
+    notice.innerHTML = `
+      <div>
+        <strong>New update available</strong>
+        <span>Refresh for version ${escapeHtml(version)}. If it still looks old, hard refresh with Ctrl + F5.</span>
+      </div>
+      <button class="secondary-action" type="button">Refresh</button>
+    `;
+    notice.querySelector("button")?.addEventListener("click", () => {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("fresh", version);
+      window.location.href = nextUrl.toString();
+    });
+    document.body.appendChild(notice);
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   window.APWorldStore = {
     readMissed,
     saveMissed,
     removeMissed,
     makeQuestionId,
     updateMissedCount,
-    apiRoot
+    apiRoot,
+    appVersion
   };
 
   document.addEventListener("DOMContentLoaded", () => {
     addThemeToggle();
     updateMissedCount();
     updateAiStatus();
+    setupReviewForm();
+    checkForUpdates();
   });
 })();
