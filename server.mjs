@@ -174,7 +174,29 @@ async function readJson(request) {
 }
 
 function cleanText(value, fallback = "") {
-  return String(value || fallback).trim();
+  const source = value ?? fallback;
+
+  if (Array.isArray(source)) {
+    return source.map((entry) => cleanText(entry)).filter(Boolean).join(" ").trim();
+  }
+
+  if (source && typeof source === "object") {
+    const preferred = source.text ?? source.prompt ?? source.question ?? source.content ?? source.excerpt ?? source.label ?? source.title ?? source.description ?? source.value;
+    if (preferred !== undefined) return cleanText(preferred, fallback);
+
+    return Object.entries(source)
+      .map(([key, entry]) => {
+        const text = cleanText(entry);
+        if (!text) return "";
+        const label = /^[abc]$/i.test(key) ? `${key.toUpperCase()}. ` : "";
+        return `${label}${text}`;
+      })
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
+  return String(source || fallback).trim();
 }
 
 function normalizeType(type) {
@@ -271,6 +293,7 @@ async function createPracticeWithAI(request) {
     "Return valid JSON only. No markdown, no prose outside JSON.",
     "Use this exact top-level shape: {\"title\":\"...\",\"items\":[...]}",
     "Each item must include: id, type, period, skill, stimulus, prompt, choices, answer, explanation, rubric, documents, tags.",
+    "The prompt field must always be one plain string. Do not return prompt as an object or nested fields.",
     "Every item must include a documents array. MCQ and SAQ need at least 1 source document; DBQ needs exactly 6 source documents; LEQ must use an empty documents array.",
     "Every document must be an object with text, source, date, context, and title. The text must be a full source-style excerpt of 60-140 words, not a summary.",
     "Write each document so the site can display it in this exact exam-style order: \"long quote or excerpt\" - \"specific person, role, or civilian in context\", \"specific date, dynasty, or time period\".",

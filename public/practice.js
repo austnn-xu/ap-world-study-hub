@@ -581,11 +581,37 @@
   }
 
   function escapeHtml(value) {
-    return String(value || "")
+    return textValue(value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
+  }
+
+  function textValue(value, fallback = "") {
+    const source = value ?? fallback;
+
+    if (Array.isArray(source)) {
+      return source.map((entry) => textValue(entry)).filter(Boolean).join(" ").trim();
+    }
+
+    if (source && typeof source === "object") {
+      const preferred = source.text ?? source.prompt ?? source.question ?? source.content ?? source.excerpt ?? source.label ?? source.title ?? source.description ?? source.value;
+      if (preferred !== undefined) return textValue(preferred, fallback);
+
+      return Object.entries(source)
+        .map(([key, entry]) => {
+          const text = textValue(entry);
+          if (!text) return "";
+          const label = /^[abc]$/i.test(key) ? `${key.toUpperCase()}. ` : "";
+          return `${label}${text}`;
+        })
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+
+    return String(source || fallback).trim();
   }
 })();
