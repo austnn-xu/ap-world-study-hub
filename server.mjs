@@ -126,6 +126,7 @@ function sendJson(response, status, payload) {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Private-Network": "true",
     "Content-Type": "application/json; charset=utf-8"
   });
   response.end(JSON.stringify(payload));
@@ -135,7 +136,8 @@ function sendEmpty(response, status) {
   response.writeHead(status, {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Private-Network": "true"
   });
   response.end();
 }
