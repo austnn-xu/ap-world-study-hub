@@ -699,6 +699,201 @@ h1 {
   line-height: 1.55;
 }
 
+.analytics-layout {
+  display: grid;
+  gap: 24px;
+  padding-bottom: 80px;
+}
+
+.analytics-intro {
+  min-height: 210px;
+}
+
+.analytics-lock,
+.analytics-toolbar,
+.analytics-panel,
+.metric-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px) saturate(1.08);
+}
+
+.analytics-lock,
+.analytics-dashboard,
+.analytics-toolbar,
+.metric-grid,
+.analytics-columns {
+  width: min(var(--max), calc(100% - 44px));
+  margin-inline: auto;
+}
+
+.analytics-lock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 22px;
+  align-items: center;
+  padding: 24px;
+}
+
+.analytics-lock h2,
+.analytics-toolbar h2,
+.analytics-panel h3 {
+  margin: 8px 0;
+  color: var(--heading);
+}
+
+.analytics-lock p,
+.analytics-toolbar p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.analytics-lock form {
+  display: grid;
+  gap: 12px;
+}
+
+.analytics-dashboard {
+  display: grid;
+  gap: 18px;
+}
+
+.analytics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card {
+  display: grid;
+  gap: 10px;
+  min-height: 118px;
+  padding: 18px;
+  border-color: transparent;
+  background:
+    linear-gradient(var(--panel), var(--panel)) padding-box,
+    linear-gradient(135deg, rgba(94, 231, 255, 0.48), rgba(167, 139, 250, 0.36), rgba(255, 106, 183, 0.44)) border-box;
+}
+
+.metric-card span {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.metric-card strong {
+  color: var(--heading);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 0.95;
+}
+
+.analytics-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.analytics-panel {
+  min-width: 0;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.panel-heading h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.panel-heading span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.daily-chart {
+  display: grid;
+  grid-template-columns: repeat(21, minmax(18px, 1fr));
+  align-items: end;
+  gap: 8px;
+  min-height: 180px;
+}
+
+.daily-bar {
+  display: grid;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+  height: 160px;
+}
+
+.daily-bar span {
+  display: block;
+  min-height: 8px;
+  border-radius: 999px 999px 2px 2px;
+  background: linear-gradient(180deg, var(--rgb-a), var(--rgb-b), var(--rgb-c));
+  box-shadow: 0 0 16px rgba(94, 231, 255, 0.16);
+}
+
+.daily-bar small {
+  color: var(--faint);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.analytics-table th,
+.analytics-table td {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.analytics-table th {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.analytics-table td:last-child,
+.analytics-table th:last-child {
+  text-align: right;
+}
+
+.analytics-table tr:last-child td {
+  border-bottom: 0;
+}
+
 .update-notice {
   position: fixed;
   right: 18px;
@@ -1203,8 +1398,14 @@ html[data-theme="light"] .document-item {
 
   .practice-workbench,
   .study-grid,
-  .review-fields {
+  .review-fields,
+  .analytics-lock,
+  .analytics-columns {
     grid-template-columns: 1fr;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .control-panel {
@@ -1246,15 +1447,29 @@ html[data-theme="light"] .document-item {
   .status-band,
   .study-grid,
   .review-section,
+  .analytics-lock,
+  .analytics-dashboard,
+  .analytics-toolbar,
+  .metric-grid,
+  .analytics-columns,
   .practice-layout,
   .timeline-page {
     width: min(100% - 28px, var(--max));
   }
 
   .review-shell,
+  .analytics-toolbar,
   .update-notice {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-chart {
+    grid-template-columns: repeat(7, minmax(18px, 1fr));
   }
 
   .review-list {

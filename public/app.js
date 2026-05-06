@@ -1,8 +1,9 @@
 (function () {
-  const appVersion = "2026.05.06.4";
+  const appVersion = "2026.05.06.5";
   const missedKey = "apworld.missed.mcq.v1";
   const reviewKey = "apworld.reviews.v1";
   const themeKey = "apworld.theme.v2";
+  const analyticsVisitorKey = "apworld.analytics.visitor.v1";
   const apiRoot = window.location.protocol === "file:" || window.location.hostname.endsWith("github.io") ? "http://localhost:4173" : "";
 
   applyTheme(readTheme());
@@ -82,6 +83,37 @@
   function writeReviews(reviews) {
     localStorage.setItem(reviewKey, JSON.stringify(reviews.slice(0, 25)));
     renderReviews();
+  }
+
+  function getVisitorId() {
+    let visitorId = localStorage.getItem(analyticsVisitorKey);
+    if (visitorId) return visitorId;
+
+    visitorId = window.crypto?.randomUUID?.() || `visitor-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(analyticsVisitorKey, visitorId);
+    return visitorId;
+  }
+
+  function trackEvent(event, details = {}) {
+    if (!event || /\/analytics(?:\.html)?$/i.test(window.location.pathname)) return;
+
+    const payload = {
+      event,
+      visitorId: getVisitorId(),
+      page: window.location.pathname || "/",
+      title: document.title,
+      version: appVersion,
+      ...details
+    };
+
+    fetch(`${apiRoot}/api/analytics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(() => {
+      // Analytics should stay invisible if the server is busy or offline.
+    });
   }
 
   function readTheme() {
@@ -190,6 +222,7 @@
         createdAt: new Date().toISOString()
       };
       writeReviews([nextReview, ...readReviews()]);
+      trackEvent("review", { rating });
       form.reset();
       form.hidden = true;
       openButton.hidden = false;
@@ -266,6 +299,7 @@
     removeMissed,
     makeQuestionId,
     updateMissedCount,
+    trackEvent,
     apiRoot,
     appVersion
   };
@@ -276,5 +310,6 @@
     updateAiStatus();
     setupReviewForm();
     checkForUpdates();
+    trackEvent("visit");
   });
 })();

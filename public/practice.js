@@ -69,11 +69,23 @@
 
       state.items = result.items || [];
       state.index = 0;
+      window.APWorldStore?.trackEvent?.("prompt", {
+        practiceType: type,
+        source: result.source || "unknown",
+        model: result.model || "",
+        itemCount: state.items.length
+      });
       renderQuestion(result.warning);
     } catch (error) {
       const fallback = clientPracticeFallback(type);
       state.items = fallback.items;
       state.index = 0;
+      window.APWorldStore?.trackEvent?.("prompt", {
+        practiceType: type,
+        source: "client-fallback",
+        model: "",
+        itemCount: state.items.length
+      });
       renderQuestion(`Static preview sample loaded. Live AI needs the Node server. ${error.message}`);
     } finally {
       setLoading(false, labels[type].button);
@@ -190,6 +202,12 @@
 
     if (correct && state.reviewMode) window.APWorldStore.removeMissed(item);
     if (!correct) window.APWorldStore.saveMissed(item, selected);
+    window.APWorldStore?.trackEvent?.("mcq_answer", {
+      practiceType: "mcq",
+      correct,
+      selected: normalizeAnswer(selected),
+      answer
+    });
 
     resultBox.hidden = false;
     resultBox.className = `result-box ${correct ? "is-correct" : "is-wrong"}`;
@@ -221,9 +239,24 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, question: item, answer })
       });
+      window.APWorldStore?.trackEvent?.("grade", {
+        practiceType: type,
+        source: result.source || "unknown",
+        model: result.model || "",
+        score: result.score,
+        maxScore: result.maxScore
+      });
       renderGrade(resultBox, result);
     } catch (error) {
-      renderGrade(resultBox, clientGradeFallback(type, error.message));
+      const fallback = clientGradeFallback(type, error.message);
+      window.APWorldStore?.trackEvent?.("grade", {
+        practiceType: type,
+        source: "client-fallback",
+        model: "",
+        score: fallback.score,
+        maxScore: fallback.maxScore
+      });
+      renderGrade(resultBox, fallback);
     } finally {
       gradeButton.disabled = false;
       gradeButton.textContent = "Grade Response";

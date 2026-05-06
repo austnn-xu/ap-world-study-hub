@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { createHmac, randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
@@ -14,6 +15,12 @@ const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
 const geminiFallbackModels = process.env.GEMINI_FALLBACK_MODELS || "gemini-2.0-flash,gemini-2.0-flash-lite,gemini-flash-lite-latest";
 const geminiModels = uniqueList([geminiModel, ...geminiFallbackModels.split(",").map((model) => model.trim())]);
 const geminiApiUrl = (process.env.GEMINI_API_URL || "https://generativelanguage.googleapis.com/v1beta").replace(/\/+$/, "");
+const analyticsPassword = process.env.ANALYTICS_PASSWORD || "";
+const analyticsSessionSecret = process.env.ANALYTICS_SESSION_SECRET || randomBytes(32).toString("hex");
+const analyticsEdgeConfigId = process.env.ANALYTICS_EDGE_CONFIG_ID || "";
+const analyticsVercelToken = process.env.ANALYTICS_VERCEL_TOKEN || process.env.VERCEL_TOKEN || "";
+const analyticsKey = "analytics";
+let memoryAnalytics = createEmptyAnalytics();
 
 const routeFiles = new Map([
   ["/", "index.html"],
@@ -21,6 +28,7 @@ const routeFiles = new Map([
   ["/saq", "saq.html"],
   ["/dbq", "dbq.html"],
   ["/leq", "leq.html"],
+  ["/analytics", "analytics.html"],
   ["/timeline", "timeline.html"]
 ]);
 
@@ -46,6 +54,10 @@ export async function handleRequest(request, response) {
 
     if (request.method === "GET" && url.pathname === "/api/status") {
       return sendJson(response, 200, getStatusPayload());
+    }
+
+    if (url.pathname === "/api/analytics") {
+      return handleAnalyticsEndpoint(request, response);
     }
 
     if (request.method === "POST" && url.pathname === "/api/practice") {
@@ -97,6 +109,75 @@ function uniqueList(values) {
   return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
 }
 
+async function handleAnalyticsEndpoint(request, response) {
+  if (request.method === "POST") {
+    const body = await readJson(request);
+
+    if (Object.hasOwn(body, "password")) {
+      if (!verifyAnalyticsPassword(body.password)) {
+        return sendJson(response, 401, { ok: false, error: "Incorrect password." });
+      }
+
+      return sendJson(response, 200, { ok: true }, {
+        "Set-Cookie": createAnalyticsCookie(request.headers.host || "")
+      });
+    }
+
+    await trackAnalyticsEvent(body, {
+      userAgent: request.headers["user-agent"] || "",
+      referer: request.headers.referer || ""
+    }).catch(() => null);
+    return sendJson(response, 202, { ok: true });
+  }
+
+  if (request.method === "GET") {
+    if (!isAnalyticsAuthorized(request.headers.cookie || "")) {
+      return sendJson(response, 401, { ok: false, error: "Password required." });
+    }
+
+    return sendJson(response, 200, await getAnalyticsSnapshot());
+  }
+
+  return sendJson(response, 405, { error: "Method not allowed" });
+}
+
+export function verifyAnalyticsPassword(password) {
+  return Boolean(analyticsPassword) && safeEqual(String(password || ""), analyticsPassword);
+}
+
+export function createAnalyticsCookie(host = "") {
+  const issuedAt = Date.now();
+  const token = `${issuedAt}.${signAnalyticsValue(String(issuedAt))}`;
+  const secure = /localhost|127\.0\.0\.1/i.test(host) ? "" : " Secure;";
+  return `apworld_analytics=${token}; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax;${secure}`;
+}
+
+export function isAnalyticsAuthorized(cookieHeader = "") {
+  const match = String(cookieHeader).match(/(?:^|;\s*)apworld_analytics=([^;]+)/);
+  if (!match) return false;
+
+  const [issuedAt, signature] = decodeURIComponent(match[1]).split(".");
+  const age = Date.now() - Number(issuedAt);
+  if (!issuedAt || !signature || !Number.isFinite(age) || age < 0 || age > 7 * 24 * 60 * 60 * 1000) return false;
+  return safeEqual(signature, signAnalyticsValue(issuedAt));
+}
+
+function signAnalyticsValue(value) {
+  return createHmac("sha256", analyticsSessionSecret).update(value).digest("hex");
+}
+
+function safeEqual(a, b) {
+  const left = String(a || "");
+  const right = String(b || "");
+  if (left.length !== right.length) return false;
+
+  let mismatch = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return mismatch === 0;
+}
+
 function loadDotEnv() {
   const envPath = path.resolve(process.cwd(), ".env");
   if (!existsSync(envPath)) return;
@@ -139,13 +220,14 @@ async function serveStatic(pathname, method, response) {
   else response.end();
 }
 
-function sendJson(response, status, payload) {
+function sendJson(response, status, payload, extraHeaders = {}) {
   response.writeHead(status, {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Private-Network": "true",
-    "Content-Type": "application/json; charset=utf-8"
+    "Content-Type": "application/json; charset=utf-8",
+    ...extraHeaders
   });
   response.end(JSON.stringify(payload));
 }
@@ -407,6 +489,255 @@ function shouldRetryGemini(error) {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function trackAnalyticsEvent(event = {}, meta = {}) {
+  const type = normalizeAnalyticsEventType(event.event || event.type);
+  if (!type) return { ok: false };
+
+  const analytics = await readAnalytics();
+  const now = new Date();
+  const day = now.toISOString().slice(0, 10);
+  const page = cleanAnalyticsValue(event.page || event.path || "/", 90);
+  const practiceType = cleanAnalyticsValue(event.practiceType || event.practice || "", 12).toLowerCase();
+  const source = cleanAnalyticsValue(event.source || "", 30).toLowerCase();
+  const model = cleanAnalyticsValue(event.model || "", 60);
+  const itemCount = Math.max(1, Math.min(50, Number(event.itemCount || 1) || 1));
+  const visitorId = hashVisitorId(event.visitorId || event.clientId || "");
+
+  analytics.totalEvents += 1;
+  analytics.lastUpdated = now.toISOString();
+  ensureDaily(analytics, day);
+
+  if (type === "visit") {
+    analytics.totalVisits += 1;
+    analytics.daily[day].visits += 1;
+    analytics.pages[page] = (analytics.pages[page] || 0) + 1;
+  }
+
+  if (type === "prompt") {
+    analytics.totalPrompts += 1;
+    analytics.totalQuestionsGenerated += itemCount;
+    analytics.daily[day].prompts += 1;
+    analytics.daily[day].questions += itemCount;
+    if (practiceType) {
+      ensurePracticeStats(analytics, practiceType);
+      analytics.practiceTypes[practiceType].prompts += 1;
+      analytics.practiceTypes[practiceType].questions += itemCount;
+    }
+    if (source) analytics.sources[source] = (analytics.sources[source] || 0) + 1;
+    if (model) analytics.models[model] = (analytics.models[model] || 0) + 1;
+  }
+
+  if (type === "grade") {
+    analytics.totalGrades += 1;
+    analytics.daily[day].grades += 1;
+    if (practiceType) {
+      ensurePracticeStats(analytics, practiceType);
+      analytics.practiceTypes[practiceType].grades += 1;
+    }
+  }
+
+  if (type === "mcq_answer") {
+    analytics.totalMcqAnswers += 1;
+    analytics.daily[day].mcqAnswers += 1;
+    if (event.correct) analytics.totalMcqCorrect += 1;
+    else analytics.totalMcqMissed += 1;
+  }
+
+  if (type === "review") {
+    analytics.totalReviews += 1;
+    analytics.daily[day].reviews += 1;
+  }
+
+  if (visitorId) {
+    const visitor = analytics.visitors[visitorId] || {
+      firstSeen: now.toISOString(),
+      lastSeen: now.toISOString(),
+      visits: 0,
+      prompts: 0,
+      grades: 0
+    };
+    visitor.lastSeen = now.toISOString();
+    if (type === "visit") visitor.visits += 1;
+    if (type === "prompt") visitor.prompts += 1;
+    if (type === "grade") visitor.grades += 1;
+    analytics.visitors[visitorId] = visitor;
+    analytics.uniqueVisitors = Object.keys(analytics.visitors).length;
+  }
+
+  analytics.recentEvents.unshift({
+    type,
+    page,
+    practiceType,
+    source,
+    model,
+    at: now.toISOString(),
+    visitor: visitorId ? visitorId.slice(0, 8) : "",
+    userAgent: cleanAnalyticsValue(meta.userAgent || "", 90)
+  });
+  analytics.recentEvents = analytics.recentEvents.slice(0, 80);
+  pruneAnalytics(analytics);
+
+  await writeAnalytics(analytics);
+  return { ok: true };
+}
+
+export async function getAnalyticsSnapshot() {
+  const analytics = await readAnalytics();
+  return {
+    ok: true,
+    storage: analyticsEdgeConfigId && analyticsVercelToken ? "edge-config" : "memory",
+    totals: {
+      visits: analytics.totalVisits,
+      uniqueVisitors: analytics.uniqueVisitors,
+      prompts: analytics.totalPrompts,
+      questionsGenerated: analytics.totalQuestionsGenerated,
+      grades: analytics.totalGrades,
+      mcqAnswers: analytics.totalMcqAnswers,
+      mcqCorrect: analytics.totalMcqCorrect,
+      mcqMissed: analytics.totalMcqMissed,
+      reviews: analytics.totalReviews
+    },
+    pages: sortedEntries(analytics.pages).slice(0, 12),
+    practiceTypes: Object.entries(analytics.practiceTypes).map(([type, stats]) => ({ type, ...stats })),
+    sources: sortedEntries(analytics.sources),
+    models: sortedEntries(analytics.models),
+    daily: Object.entries(analytics.daily).sort(([a], [b]) => a.localeCompare(b)).slice(-21).map(([date, stats]) => ({ date, ...stats })),
+    recentEvents: analytics.recentEvents.slice(0, 30),
+    lastUpdated: analytics.lastUpdated
+  };
+}
+
+async function readAnalytics() {
+  if (!analyticsEdgeConfigId || !analyticsVercelToken) return cloneAnalytics(memoryAnalytics);
+
+  const response = await fetch(`https://api.vercel.com/v1/edge-config/${encodeURIComponent(analyticsEdgeConfigId)}/items`, {
+    headers: { Authorization: `Bearer ${analyticsVercelToken}` }
+  });
+
+  if (!response.ok) return cloneAnalytics(memoryAnalytics);
+  const data = await response.json();
+  const stored = extractEdgeConfigValue(data, analyticsKey);
+  return normalizeAnalytics(stored || memoryAnalytics);
+}
+
+async function writeAnalytics(analytics) {
+  if (!analyticsEdgeConfigId || !analyticsVercelToken) {
+    memoryAnalytics = normalizeAnalytics(analytics);
+    return;
+  }
+
+  const normalized = normalizeAnalytics(analytics);
+  const updated = await patchEdgeConfigItem("update", normalized);
+  if (!updated) await patchEdgeConfigItem("create", normalized);
+}
+
+async function patchEdgeConfigItem(operation, value) {
+  const response = await fetch(`https://api.vercel.com/v1/edge-config/${encodeURIComponent(analyticsEdgeConfigId)}/items`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${analyticsVercelToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      items: [{ operation, key: analyticsKey, value }]
+    })
+  });
+  return response.ok;
+}
+
+function extractEdgeConfigValue(data, key) {
+  if (!data) return null;
+  if (data.items && !Array.isArray(data.items)) return data.items[key];
+  if (Array.isArray(data.items)) return data.items.find((item) => item.key === key)?.value;
+  if (Object.hasOwn(data, key)) return data[key];
+  if (Array.isArray(data)) return data.find((item) => item.key === key)?.value;
+  return null;
+}
+
+function normalizeAnalytics(value) {
+  const base = createEmptyAnalytics();
+  const analytics = value && typeof value === "object" ? value : {};
+  return {
+    ...base,
+    ...analytics,
+    pages: { ...base.pages, ...(analytics.pages || {}) },
+    practiceTypes: { ...(analytics.practiceTypes || {}) },
+    sources: { ...(analytics.sources || {}) },
+    models: { ...(analytics.models || {}) },
+    daily: { ...(analytics.daily || {}) },
+    visitors: { ...(analytics.visitors || {}) },
+    recentEvents: Array.isArray(analytics.recentEvents) ? analytics.recentEvents : []
+  };
+}
+
+function createEmptyAnalytics() {
+  return {
+    version: 1,
+    totalEvents: 0,
+    totalVisits: 0,
+    uniqueVisitors: 0,
+    totalPrompts: 0,
+    totalQuestionsGenerated: 0,
+    totalGrades: 0,
+    totalMcqAnswers: 0,
+    totalMcqCorrect: 0,
+    totalMcqMissed: 0,
+    totalReviews: 0,
+    pages: {},
+    practiceTypes: {},
+    sources: {},
+    models: {},
+    daily: {},
+    visitors: {},
+    recentEvents: [],
+    lastUpdated: new Date().toISOString()
+  };
+}
+
+function cloneAnalytics(analytics) {
+  return JSON.parse(JSON.stringify(normalizeAnalytics(analytics)));
+}
+
+function normalizeAnalyticsEventType(value) {
+  const type = cleanAnalyticsValue(value, 24).toLowerCase();
+  return ["visit", "prompt", "grade", "mcq_answer", "review"].includes(type) ? type : "";
+}
+
+function cleanAnalyticsValue(value, maxLength) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function hashVisitorId(value) {
+  const id = cleanAnalyticsValue(value, 120);
+  if (!id) return "";
+  return createHmac("sha256", analyticsSessionSecret).update(id).digest("hex").slice(0, 20);
+}
+
+function ensureDaily(analytics, day) {
+  analytics.daily[day] ||= { visits: 0, prompts: 0, questions: 0, grades: 0, mcqAnswers: 0, reviews: 0 };
+  analytics.daily[day].questions ||= 0;
+}
+
+function ensurePracticeStats(analytics, type) {
+  analytics.practiceTypes[type] ||= { prompts: 0, questions: 0, grades: 0 };
+  analytics.practiceTypes[type].questions ||= 0;
+}
+
+function sortedEntries(record) {
+  return Object.entries(record || {})
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function pruneAnalytics(analytics) {
+  const visitorEntries = Object.entries(analytics.visitors).sort(([, a], [, b]) => String(b.lastSeen).localeCompare(String(a.lastSeen)));
+  analytics.visitors = Object.fromEntries(visitorEntries.slice(0, 1200));
+  analytics.uniqueVisitors = Object.keys(analytics.visitors).length;
+
+  const dailyEntries = Object.entries(analytics.daily).sort(([a], [b]) => a.localeCompare(b)).slice(-90);
+  analytics.daily = Object.fromEntries(dailyEntries);
 }
 
 function extractResponseText(data) {
