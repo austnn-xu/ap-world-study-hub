@@ -294,16 +294,42 @@ h1 {
 }
 
 .hero-product {
+  position: relative;
+  isolation: isolate;
   grid-column: 2;
   grid-row: 1 / span 5;
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
-  box-shadow: var(--shadow), var(--glow);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035)) padding-box,
+    linear-gradient(135deg, var(--rgb-a), var(--rgb-b), var(--rgb-c), var(--rgb-a)) border-box;
+  box-shadow: var(--shadow);
   backdrop-filter: blur(22px);
   transform: perspective(1000px) rotateY(-8deg) rotateX(3deg);
   animation: floatWindow 6.5s ease-in-out infinite;
+}
+
+.hero-product::before {
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  content: "";
+  border-radius: 21px;
+  padding: 3px;
+  background: linear-gradient(120deg, var(--rgb-a), var(--rgb-b), var(--rgb-c), var(--rgb-a));
+  background-size: 260% 260%;
+  filter: blur(7px);
+  opacity: 0.62;
+  animation: outlineFlow 5.8s linear infinite;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
 }
 
 @keyframes floatWindow {
@@ -313,6 +339,15 @@ h1 {
   }
   50% {
     transform: perspective(1000px) rotateY(-8deg) rotateX(3deg) translateY(-12px);
+  }
+}
+
+@keyframes outlineFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 260% 50%;
   }
 }
 
@@ -350,19 +385,61 @@ h1 {
 }
 
 .product-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 22px;
 }
 
-.product-grid span {
+.product-choice {
   height: 74px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
+}
+
+.product-choice.is-correct {
+  border-color: rgba(139, 215, 127, 0.74);
   background:
-    linear-gradient(135deg, rgba(94, 231, 255, 0.14), transparent),
-    rgba(255, 255, 255, 0.05);
+    linear-gradient(135deg, rgba(139, 215, 127, 0.28), rgba(139, 215, 127, 0.07)),
+    rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 20px rgba(139, 215, 127, 0.12);
+}
+
+.product-choice.is-wrong {
+  border-color: rgba(255, 122, 150, 0.52);
+  background:
+    linear-gradient(135deg, rgba(255, 122, 150, 0.22), rgba(255, 122, 150, 0.045)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.product-cursor {
+  position: absolute;
+  top: -12px;
+  left: 28%;
+  width: 24px;
+  height: 30px;
+  transform: rotate(-18deg);
+  filter: drop-shadow(0 0 12px rgba(139, 215, 127, 0.55));
+  animation: cursorFloat 3.4s ease-in-out infinite;
+}
+
+.product-cursor::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: #ffffff;
+  clip-path: polygon(0 0, 0 86%, 29% 65%, 44% 100%, 62% 92%, 46% 58%, 82% 58%);
+}
+
+@keyframes cursorFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-18deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-18deg);
+  }
 }
 
 .home-actions {

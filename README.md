@@ -8,7 +8,7 @@ This GitHub page is the code/instructions page. The actual website is the link a
 
 A full AP World History study website with:
 
-- AI-generated MCQ, SAQ, DBQ, and LEQ practice
+- Gemini-generated MCQ, SAQ, DBQ, and LEQ practice
 - AI grading for written SAQ, DBQ, and LEQ responses
 - Missed MCQ storage in the browser so you can review wrong answers later
 - A button that opens the original AP World timeline project
@@ -41,8 +41,8 @@ http://localhost:4173
 Copy `.env.example` to `.env`, then add your key:
 
 ```text
-OPENAI_API_KEY=your_key_here
-OPENAI_MODEL=gpt-4.1-mini
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash
 PORT=4173
 ```
 

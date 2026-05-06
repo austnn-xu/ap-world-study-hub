@@ -9,9 +9,9 @@ loadDotEnv();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "public");
 const port = Number(process.env.PORT || 4173);
-const openAiKey = process.env.OPENAI_API_KEY || "";
-const openAiModel = process.env.OPENAI_MODEL || "gpt-4.1-mini";
-const responsesUrl = process.env.OPENAI_RESPONSES_URL || "https://api.openai.com/v1/responses";
+const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const geminiApiUrl = (process.env.GEMINI_API_URL || "https://generativelanguage.googleapis.com/v1beta").replace(/\/+$/, "");
 
 const routeFiles = new Map([
   ["/", "index.html"],
@@ -44,8 +44,9 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/api/status") {
       return sendJson(response, 200, {
-        liveAI: Boolean(openAiKey),
-        model: openAiKey ? openAiModel : "sample-mode"
+        liveAI: Boolean(geminiKey),
+        provider: geminiKey ? "Gemini" : "Sample",
+        model: geminiKey ? geminiModel : "sample-mode"
       });
     }
 
@@ -175,8 +176,7 @@ function normalizeType(type) {
 
 async function createPractice(body) {
   const type = normalizeType(body.type);
-  const requestedCount = Number(body.count || 10);
-  const count = Math.max(10, Math.min(10, Number.isFinite(requestedCount) ? requestedCount : 10));
+  const count = type === "mcq" ? 10 : 1;
   const request = {
     type,
     count,
@@ -185,10 +185,10 @@ async function createPractice(body) {
     difficulty: cleanText(body.difficulty, "AP exam style")
   };
 
-  if (!openAiKey) {
+  if (!geminiKey) {
     return {
       source: "sample",
-      warning: "Set OPENAI_API_KEY in .env for live AI-generated practice.",
+      warning: "Set GEMINI_API_KEY in .env for live AI-generated practice.",
       ...samplePractice(request)
     };
   }
@@ -197,7 +197,7 @@ async function createPractice(body) {
     const result = await createPracticeWithAI(request);
     return {
       source: "ai",
-      model: openAiModel,
+      model: geminiModel,
       ...normalizePracticeResult(result, request)
     };
   } catch (error) {
@@ -227,10 +227,10 @@ async function gradePractice(body) {
   const question = body.question || {};
   const request = { type, question, answer };
 
-  if (!openAiKey) {
+  if (!geminiKey) {
     return {
       source: "sample",
-      warning: "Set OPENAI_API_KEY in .env for live AI grading.",
+      warning: "Set GEMINI_API_KEY in .env for live AI grading.",
       ...sampleGrade(request)
     };
   }
@@ -239,7 +239,7 @@ async function gradePractice(body) {
     const result = await gradeWithAI(request);
     return {
       source: "ai",
-      model: openAiModel,
+      model: geminiModel,
       ...normalizeGradeResult(result, type)
     };
   } catch (error) {
@@ -258,13 +258,17 @@ async function createPracticeWithAI(request) {
     "Return valid JSON only. No markdown, no prose outside JSON.",
     "Use this exact top-level shape: {\"title\":\"...\",\"items\":[...]}",
     "Each item must include: id, type, period, skill, stimulus, prompt, choices, answer, explanation, rubric, documents, tags.",
+    "Every item must include a documents array. MCQ, SAQ, and LEQ need at least 1 source document; DBQ needs 4-6 source documents.",
+    "Every document must be an object with text, source, date, context, and title. The text must be a full source-style excerpt of 60-140 words, not a summary.",
+    "Write each document so the site can display it in this exact exam-style order: \"long quote or excerpt\" - \"specific person, role, or civilian in context\", \"specific date, dynasty, or time period\".",
+    "The source field should be the person or group plus context, like \"Chinese merchant in Quanzhou describing Indian Ocean trade\". The date field should be specific, like \"Yuan dynasty, c. 1290\" or \"Manchester, 1842\".",
+    "Do not use short generic stimulus summaries such as merchants traveled across routes. Use source excerpts that sound like AP World exam stimuli.",
     "For MCQ, choices must be exactly four objects with id A-D and answer must be A, B, C, or D.",
     "For MCQ sets with more than one item, vary the correct answer letters across A, B, C, and D. Do not make every answer A.",
     "Create exactly the requested number of separate items.",
-    "For SAQ items, make each prompt three parts labeled A, B, and C.",
-    "For DBQ items, include 4-6 invented AP-style documents for each item, not summaries. Each document must be an object with title, source, date, context, and text. The text should be 60-120 words and read like a short primary source excerpt, data table description, petition, speech, law, letter, newspaper passage, or report excerpt.",
-    "For LEQ items, ask for thesis-driven essays.",
-    "For SAQ, DBQ, and LEQ sets, vary the topic angle across the items while staying inside the user's focus."
+    "For SAQ items, make one three-part prompt labeled A, B, and C based on at least one source document.",
+    "For DBQ items, include 4-6 invented AP-style source documents for each item.",
+    "For LEQ items, ask for one thesis-driven essay and include at least one source document for context."
   ].join(" ");
 
   const prompt = [
@@ -276,7 +280,7 @@ async function createPracticeWithAI(request) {
     "Make the material useful for AP World History studying from c. 1200 to the present."
   ].join("\n");
 
-  return callOpenAIJson(instructions, prompt);
+  return callGeminiJson(instructions, prompt);
 }
 
 async function gradeWithAI(request) {
@@ -295,57 +299,52 @@ async function gradeWithAI(request) {
     `Student response: ${request.answer}`
   ].join("\n\n");
 
-  return callOpenAIJson(instructions, prompt);
+  return callGeminiJson(instructions, prompt);
 }
 
-async function callOpenAIJson(instructions, prompt) {
-  const payloads = [
-    {
-      model: openAiModel,
-      input: [
-        { role: "system", content: [{ type: "input_text", text: instructions }] },
-        { role: "user", content: [{ type: "input_text", text: prompt }] }
+async function callGeminiJson(instructions, prompt) {
+  const endpoint = `${geminiApiUrl}/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: instructions }]
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `${prompt}\n\nReturn only valid JSON.` }]
+        }
       ],
-      text: { format: { type: "json_object" } }
-    },
-    {
-      model: openAiModel,
-      input: `${instructions}\n\n${prompt}\n\nReturn only JSON.`
-    }
-  ];
-
-  let lastError = null;
-  for (const payload of payloads) {
-    try {
-      const response = await fetch(responsesUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${openAiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const details = await response.text();
-        throw new Error(`OpenAI returned ${response.status}: ${details.slice(0, 180)}`);
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.75
       }
+    })
+  });
 
-      const data = await response.json();
-      const text = extractResponseText(data);
-      if (!text) throw new Error("OpenAI returned no text.");
-      return JSON.parse(stripJsonFence(text));
-    } catch (error) {
-      lastError = error;
-    }
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Gemini returned ${response.status}: ${details.slice(0, 180)}`);
   }
 
-  throw lastError || new Error("OpenAI request failed.");
+  const data = await response.json();
+  const text = extractResponseText(data);
+  if (!text) throw new Error("Gemini returned no text.");
+  return JSON.parse(stripJsonFence(text));
 }
 
 function extractResponseText(data) {
   if (typeof data.output_text === "string") return data.output_text;
   if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+  if (Array.isArray(data.candidates?.[0]?.content?.parts)) {
+    return data.candidates[0].content.parts
+      .map((part) => part.text || "")
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+  }
 
   const parts = [];
   const walk = (value) => {
@@ -529,7 +528,7 @@ function sampleGrade(request) {
     score: rough,
     maxScore,
     level: rough >= maxScore * 0.75 ? "Strong sample score" : "Developing sample score",
-    feedback: "Sample grading is estimating structure, length, and evidence. Live AI grading will give more precise rubric feedback once OPENAI_API_KEY is set.",
+    feedback: "Sample grading is estimating structure, length, and evidence. Live AI grading will give more precise rubric feedback once GEMINI_API_KEY is set.",
     strengths: [
       "The response makes an attempt to answer the prompt.",
       words > 80 ? "There is enough length to start developing evidence." : "The response is concise."
@@ -550,7 +549,7 @@ const sampleMcqBank = [
   {
     period: "Period 1: c. 1200-c. 1450",
     skill: "Causation",
-    stimulus: "A traveler describes caravans moving textiles, horses, paper, and luxury goods between oasis cities across Inner Asia.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "Which development most directly helped make the exchange described in the stimulus possible?",
     choices: [
       { id: "A", text: "The decline of banking practices in commercial cities" },
@@ -561,13 +560,21 @@ const sampleMcqBank = [
     answer: "B",
     explanation: "Large states and empires helped secure routes, standardize practices, and support long-distance commerce.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Persian merchant traveling between Samarkand and Khanbaliq under Mongol rule",
+        date: "Yuan dynasty, c. 1280",
+        context: "Mongol authorities protected major routes across Eurasia and encouraged long-distance commerce.",
+        text: "At the relay stations our animals are exchanged before their strength fails, and the tablets carried by the khan's officials open gates that once closed at sunset. In the markets I see paper from China, horses from the steppe, glass from Syria, and bolts of cloth that have crossed more lands than any single man could name. The roads are watched, and a merchant who pays the proper dues may travel farther than his father imagined."
+      }
+    ],
     tags: ["Silk Roads", "trade", "land empires"]
   },
   {
     period: "Period 2: c. 1450-c. 1750",
     skill: "Continuity and change",
-    stimulus: "Silver mined in the Americas moved through European merchants to Asian markets, where it was exchanged for manufactured goods.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "The pattern described in the stimulus best illustrates which broader change?",
     choices: [
       { id: "A", text: "The replacement of silver by barter in all major economies" },
@@ -578,13 +585,21 @@ const sampleMcqBank = [
     answer: "D",
     explanation: "American silver linked global markets and became central to early modern trade, especially with Asian demand.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Spanish official reporting on silver shipments from New Spain to Manila",
+        date: "Mexico City, 1597",
+        context: "American silver moved through Pacific and Atlantic routes into Asian markets.",
+        text: "The merchants press continually for permission to send more pesos across the sea, for in Manila the Chinese traders will take silver more eagerly than woolens or wine. From those islands return silks, porcelain, and spices that fill the shops of Mexico and Seville. The mines have made our king powerful, yet the coin does not rest in Spain; it moves wherever Asian goods command a better price."
+      }
+    ],
     tags: ["silver", "Columbian Exchange", "global trade"]
   },
   {
     period: "Period 3: c. 1750-c. 1900",
     skill: "Comparison",
-    stimulus: "Factories concentrated workers near machines powered first by water and then by steam engines.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "Which comparison between industrialization in Britain and Japan is most accurate?",
     choices: [
       { id: "A", text: "Neither country used textile production as part of industrial growth" },
@@ -595,13 +610,21 @@ const sampleMcqBank = [
     answer: "C",
     explanation: "Britain led early industrialization, while Meiji Japan used state reforms and investment to industrialize rapidly.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Japanese student sent by the Meiji government to inspect British textile factories",
+        date: "Manchester, 1872",
+        context: "Meiji leaders studied Western industry while pursuing state-directed modernization.",
+        text: "The mills here were begun by merchants who risked private fortunes, but their machines now appear as disciplined as a regiment. Our own country cannot wait for such habits to grow slowly. If Japan is to preserve its independence, officials must purchase machinery, send students abroad, and teach factory labor as deliberately as we once taught service to a lord. Industry has become a defense of the nation."
+      }
+    ],
     tags: ["industrialization", "Meiji Japan", "Britain"]
   },
   {
     period: "Period 4: c. 1900-present",
     skill: "Contextualization",
-    stimulus: "New international institutions formed after 1945 to manage security, finance, development, and diplomacy.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "The development described in the stimulus was most directly shaped by which context?",
     choices: [
       { id: "A", text: "The destruction of the Second World War and the desire to prevent another global conflict" },
@@ -612,13 +635,21 @@ const sampleMcqBank = [
     answer: "A",
     explanation: "Institutions such as the UN, IMF, and World Bank reflected postwar efforts to stabilize international relations.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Delegate from a war-damaged European state speaking at an international conference",
+        date: "San Francisco, 1945",
+        context: "World War II convinced many governments to create new institutions for diplomacy and security.",
+        text: "Our cities have learned what follows when nations treat treaties as scraps of paper and economic misery as another country's problem. We come here not because we trust all states equally, but because the alternative has been tested in fire. A council of nations, relief for shattered economies, and rules for settling disputes may not end ambition, yet they may keep ambition from becoming another world war."
+      }
+    ],
     tags: ["postwar order", "United Nations", "global institutions"]
   },
   {
     period: "Period 2: c. 1450-c. 1750",
     skill: "Causation",
-    stimulus: "Gunpowder weapons helped rulers expand armies, breach fortifications, and centralize authority.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "Which state best demonstrates the process described in the stimulus?",
     choices: [
       { id: "A", text: "The Mongol Empire before the adoption of siege technologies" },
@@ -629,13 +660,21 @@ const sampleMcqBank = [
     answer: "D",
     explanation: "The Ottomans used gunpowder artillery and firearms as part of imperial expansion and centralization.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Ottoman artillery officer describing the siege of a fortified city",
+        date: "Reign of Mehmed II, 1453",
+        context: "Gunpowder weapons helped several early modern empires expand and centralize rule.",
+        text: "The great guns are slow to move, but when they speak the old walls tremble like clay jars. Engineers measure the distance, gunners prepare powder, and scribes record supplies sent from the sultan's storehouses. This is not the work of a single warrior seeking glory. It is the work of a ruler who commands foundries, roads, taxes, and soldiers so that stone fortresses may no longer halt his authority."
+      }
+    ],
     tags: ["gunpowder empires", "Ottoman Empire", "state-building"]
   },
   {
     period: "Period 1: c. 1200-c. 1450",
     skill: "Comparison",
-    stimulus: "Swahili city-states grew wealthy by connecting African interior goods with merchants from Arabia, Persia, India, and China.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "Which comparison best describes the Swahili city-states and the cities of the Silk Roads?",
     choices: [
       { id: "A", text: "Both relied only on local subsistence farming and avoided long-distance commerce" },
@@ -646,13 +685,21 @@ const sampleMcqBank = [
     answer: "B",
     explanation: "Both the Swahili coast and Silk Road cities became trade hubs where merchants, languages, religions, and goods mixed.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Swahili merchant in Kilwa writing to a trading partner across the Indian Ocean",
+        date: "Kilwa, c. 1330",
+        context: "Coastal East African city-states linked inland African goods with Indian Ocean commerce.",
+        text: "The monsoon has turned, and with it come ships carrying cotton cloth, beads, and porcelain. In our warehouses are ivory from the interior, gold dust brought by caravan, and mangrove poles cut near the shore. A man who speaks only the language of his village will bargain poorly here, for the harbor carries Arabic prayers, Persian accounts, and the speech of sailors from Gujarat."
+      }
+    ],
     tags: ["Indian Ocean", "Swahili coast", "trade"]
   },
   {
     period: "Period 2: c. 1450-c. 1750",
     skill: "Contextualization",
-    stimulus: "European states established maritime trading-post empires and plantation colonies after developing oceanic navigation and armed ships.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "The pattern described in the stimulus was most directly enabled by",
     choices: [
       { id: "A", text: "the spread of maritime technologies and state-backed exploration" },
@@ -663,13 +710,21 @@ const sampleMcqBank = [
     answer: "A",
     explanation: "Navigation tools, ship designs, cannon, and state sponsorship helped European states expand maritime activity.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Portuguese pilot advising a royal official about voyages around Africa",
+        date: "Lisbon, c. 1505",
+        context: "Maritime technology and state support helped European kingdoms enter Indian Ocean trade.",
+        text: "The compass and astrolabe do not quiet the sea, but they allow a pilot to argue with it more confidently. The crown has ordered charts copied, cannon mounted, and captains supplied for voyages past the Cape. Without royal warehouses and armed ships, our merchants would be only visitors in eastern waters. With them, they become factors in forts, collecting duties and bargaining under the shadow of guns."
+      }
+    ],
     tags: ["maritime empires", "exploration", "technology"]
   },
   {
     period: "Period 3: c. 1750-c. 1900",
     skill: "Causation",
-    stimulus: "Anti-colonial rebellions and reform movements emerged in regions facing expanding European economic and political pressure.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "Which development was most often a cause of the resistance described?",
     choices: [
       { id: "A", text: "Colonized peoples uniformly accepted foreign rule without negotiation" },
@@ -680,13 +735,21 @@ const sampleMcqBank = [
     answer: "C",
     explanation: "Resistance often responded to colonial rule, land pressure, resource extraction, missionary activity, and unequal economic relationships.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Village headman petitioning against new colonial taxes and land rules",
+        date: "East Africa, 1895",
+        context: "Imperial administrations often imposed taxes, labor demands, and land policies that provoked resistance.",
+        text: "The new officers say the tax is small, but it must be paid in coin that our people cannot grow in the fields. They mark land that belonged to our ancestors and tell young men to carry loads for roads we did not request. If a chief refuses, soldiers arrive; if he agrees, his own people call him a servant. We ask whether law is still law when it speaks only in a foreign tongue."
+      }
+    ],
     tags: ["imperialism", "resistance", "colonialism"]
   },
   {
     period: "Period 4: c. 1900-present",
     skill: "Continuity and change",
-    stimulus: "Newly independent states after 1945 often kept colonial borders while attempting to build national governments and economies.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "Which statement best explains a challenge connected to the process described?",
     choices: [
       { id: "A", text: "All new states inherited identical ethnic and linguistic populations" },
@@ -697,13 +760,21 @@ const sampleMcqBank = [
     answer: "B",
     explanation: "Postcolonial states often faced borders, institutions, and economies shaped by colonial priorities rather than local unity.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Newly elected African legislator addressing a national assembly after independence",
+        date: "Accra, 1958",
+        context: "Decolonization created new states that often inherited colonial borders and economies.",
+        text: "The flag has changed, and with it the hope of our people, but the railway still runs from mine to port rather than village to village. The borders enclose communities that traded and quarreled long before Europeans drew maps in distant offices. We must build a nation from the tools left by an empire, using schools, courts, and roads that were not designed for our unity."
+      }
+    ],
     tags: ["decolonization", "postcolonial states", "nationalism"]
   },
   {
     period: "Period 4: c. 1900-present",
     skill: "Causation",
-    stimulus: "Container shipping, air travel, digital communication, and multinational corporations accelerated global economic connections late in the twentieth century.",
+    stimulus: "Use the source below to answer the question.",
     prompt: "Which outcome most directly resulted from the developments described?",
     choices: [
       { id: "A", text: "Global supply chains linked production and consumption across multiple regions" },
@@ -714,7 +785,15 @@ const sampleMcqBank = [
     answer: "A",
     explanation: "Late twentieth-century technologies and corporations made it easier to split production across regions and sell goods globally.",
     rubric: [],
-    documents: [],
+    documents: [
+      {
+        title: "Source 1",
+        source: "Factory manager describing electronics production for a multinational corporation",
+        date: "Shenzhen, 1998",
+        context: "Late twentieth-century globalization expanded supply chains across multiple regions.",
+        text: "The design arrives by fax and computer file from California, the chips come from several ports, and the finished boards leave in containers before the month ends. Workers here assemble what customers in Europe may purchase under a brand they know better than our city's name. Speed matters more than distance now. A delay in one harbor can halt orders in three countries."
+      }
+    ],
     tags: ["globalization", "technology", "trade"]
   }
 ];
@@ -725,8 +804,8 @@ const sampleWritten = {
     item: {
       period: "Period 2: c. 1450-c. 1750",
       skill: "Causation",
-      stimulus: "Many early modern empires expanded by combining military innovation, tax systems, and claims to religious or political legitimacy.",
-      prompt: "A. Identify ONE military technology used by an early modern empire. B. Explain ONE way that technology helped expand or maintain empire. C. Explain ONE non-military method rulers used to legitimize authority.",
+      stimulus: "Use the source below to answer all parts of the question.",
+      prompt: "A. Identify ONE military technology referenced or implied in the source. B. Explain ONE way that technology helped expand or maintain empire. C. Explain ONE non-military method rulers used to legitimize authority.",
       choices: [],
       answer: "",
       explanation: "A strong answer names a technology, explains its effect, and gives a separate legitimacy strategy.",
@@ -735,7 +814,15 @@ const sampleWritten = {
         "B point: explains how the technology supported conquest, defense, or centralization.",
         "C point: explains legitimacy through religion, monumental architecture, bureaucracy, law, or court ritual."
       ],
-      documents: [],
+      documents: [
+        {
+          title: "Source 1",
+          source: "Court chronicler praising an early modern ruler after a successful siege",
+          date: "Mughal Empire, c. 1570",
+          context: "Early modern empires often combined military power with claims of religious, dynastic, or bureaucratic legitimacy.",
+          text: "The emperor's cannon opened the fort, but victory was secured also by order. Accountants recorded each village newly placed under imperial revenue, judges promised protection to merchants, and poets compared the ruler's justice to shade in the hot season. Soldiers may break a gate in one day; obedience lasts only when people believe the ruler commands more than iron and fire."
+        }
+      ],
       tags: ["empires", "gunpowder", "legitimacy"]
     }
   },
@@ -760,36 +847,36 @@ const sampleWritten = {
       documents: [
         {
           title: "Document 1",
-          source: "Rules posted by the owner of a Manchester textile mill",
-          date: "1833",
+          source: "Textile mill owner posting rules for workers in an industrial factory",
+          date: "Manchester, 1833",
           context: "Factory owners attempted to discipline a large wage-labor workforce.",
           text: "Any worker arriving after the bell shall lose one quarter day's wages. Talking at the frames, leaving the room without permission, or damaging thread through carelessness shall be fined. Children employed as piecers must remain at their assigned machines until relieved. The overseer is instructed to report idleness immediately, for the success of the mill depends upon regular motion and punctual attendance."
         },
         {
           title: "Document 2",
-          source: "Letter from a textile worker to a local newspaper in northern England",
-          date: "1842",
+          source: "Textile worker writing to a local newspaper about factory conditions",
+          date: "Northern England, 1842",
           context: "Industrial workers increasingly criticized working conditions in print.",
           text: "We labor from early morning until the lamps are lit, breathing lint and heat while the engines never rest. My eldest daughter is twelve and earns a little beside me, but she returns home too tired to read. The masters speak of progress, yet in our street several families sleep in one damp room. If machines enrich the nation, workers ask why our hours lengthen and our bread remains dear."
         },
         {
           title: "Document 3",
-          source: "Speech by an Indian merchant in Bombay discussing mechanized cotton imports",
-          date: "1877",
+          source: "Indian merchant in Bombay discussing mechanized cotton imports",
+          date: "Bombay, 1877",
           context: "Industrial production reshaped global trade and colonial economies.",
           text: "Cloth once woven by skilled hands in our towns now arrives by the shipload from Lancashire, priced so low that many local weavers cannot compete. Some merchants profit by carrying these goods inland, but artisans complain that the new trade reduces them to debt. Railways and steamships have enlarged commerce, yet they also bind our markets to factories far beyond our shores."
         },
         {
           title: "Document 4",
-          source: "Petition from women workers in a Japanese silk-reeling factory",
-          date: "1898",
+          source: "Women workers petitioning managers in a Japanese silk-reeling factory",
+          date: "Meiji Japan, 1898",
           context: "Meiji industrialization expanded factory work for young women.",
           text: "We ask that dormitory rules be made less severe and that wages promised by recruiters be paid in full. Many of us left farming villages to help our families meet taxes, but deductions for food and lodging leave little to send home. We do not reject work for the nation; we ask only that supervisors stop extending hours when export orders rise."
         },
         {
           title: "Document 5",
-          source: "Excerpt from a municipal health report in Berlin",
-          date: "1901",
+          source: "Municipal health official reporting on industrial neighborhoods",
+          date: "Berlin, 1901",
           context: "Rapid urban growth led governments to investigate public health problems.",
           text: "The industrial districts continue to receive migrants faster than adequate housing can be built. Tenements near workshops show high rates of respiratory illness, especially among children. The city recommends improved drainage, limits on overcrowding, and inspection of factories that release smoke into residential streets. Economic growth has increased employment, but it has also created public burdens requiring state action."
         }
@@ -802,7 +889,7 @@ const sampleWritten = {
     item: {
       period: "Period 4: c. 1900-present",
       skill: "Continuity and change",
-      stimulus: "",
+      stimulus: "Use the source below as context for the essay prompt.",
       prompt: "Evaluate the extent to which decolonization after 1945 changed political structures in Asia and Africa.",
       choices: [],
       answer: "",
@@ -813,7 +900,15 @@ const sampleWritten = {
         "Evidence: up to 2 points.",
         "Analysis and reasoning: up to 2 points."
       ],
-      documents: [],
+      documents: [
+        {
+          title: "Source 1",
+          source: "Nationalist organizer speaking to supporters before independence negotiations",
+          date: "South Asia, 1946",
+          context: "Anti-colonial leaders demanded sovereignty while debating what kind of state should replace imperial rule.",
+          text: "We do not ask merely that one set of officials depart and another sit behind the same desks. Villagers who paid taxes without representation, workers who supplied wartime factories, and students who filled the prisons expect a government answerable to them. Yet the borders, courts, and army we inherit were built for empire. Freedom will be measured by whether these instruments can be turned toward our own people."
+        }
+      ],
       tags: ["decolonization", "nationalism", "postwar"]
     }
   }

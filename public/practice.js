@@ -4,9 +4,9 @@
 
   const labels = {
     mcq: { title: "MCQ Practice", count: 10, button: "Generate 10 Questions" },
-    saq: { title: "SAQ Practice", count: 10, button: "Generate 10 SAQs" },
-    dbq: { title: "DBQ Practice", count: 10, button: "Generate 10 DBQs" },
-    leq: { title: "LEQ Practice", count: 10, button: "Generate 10 LEQs" }
+    saq: { title: "SAQ Practice", count: 1, button: "Generate SAQ" },
+    dbq: { title: "DBQ Practice", count: 1, button: "Generate DBQ" },
+    leq: { title: "LEQ Practice", count: 1, button: "Generate LEQ" }
   };
   const randomTopics = [
     { topic: "Indian Ocean trade networks, merchant diasporas, and cultural exchange", period: "Period 1: c. 1200-c. 1450" },
@@ -122,6 +122,7 @@
 
   function renderMcq(item, warning) {
     const progress = `${state.index + 1} of ${state.items.length}`;
+    const documents = renderDocumentsSection(item);
     const choices = (item.choices || []).map((choice) => `
       <button class="choice-button" type="button" data-choice="${escapeHtml(choice.id)}">
         <span class="choice-letter">${escapeHtml(choice.id)}</span>
@@ -138,6 +139,7 @@
           <span>${escapeHtml(item.skill || "Practice")}</span>
         </div>
         ${item.stimulus ? `<div class="stimulus">${escapeHtml(item.stimulus)}</div>` : ""}
+        ${documents}
         <h2>${escapeHtml(item.prompt)}</h2>
         <div class="choices">${choices}</div>
         <div id="resultBox" class="result-box" hidden></div>
@@ -150,7 +152,7 @@
 
   function renderWritten(item, warning) {
     const progress = `${state.index + 1} of ${state.items.length}`;
-    const documents = (item.documents || []).map((document, index) => renderDocument(document, index)).join("");
+    const documents = renderDocumentsSection(item);
     const rubric = (item.rubric || []).map((line) => `<li>${escapeHtml(line)}</li>`).join("");
 
     return `
@@ -163,13 +165,13 @@
           <span>${type.toUpperCase()}</span>
         </div>
         ${item.stimulus ? `<div class="stimulus">${escapeHtml(item.stimulus)}</div>` : ""}
+        ${documents}
         <h2>${escapeHtml(item.prompt)}</h2>
-        ${documents ? `<div class="document-box"><h3>Documents</h3><ol class="document-list">${documents}</ol></div>` : ""}
         <label class="response-label" for="studentResponse">Your response</label>
         <textarea id="studentResponse" rows="${type === "saq" ? "8" : "16"}" placeholder="Write your response here."></textarea>
         <div class="question-actions">
           <button class="primary-action" type="button" data-grade>Grade Response</button>
-          <button class="secondary-action" type="button" data-next>${state.index + 1 === state.items.length ? "Finish Set" : "Next Prompt"}</button>
+          ${state.items.length > 1 ? `<button class="secondary-action" type="button" data-next>${state.index + 1 === state.items.length ? "Finish Set" : "Next Prompt"}</button>` : ""}
         </div>
         <div id="resultBox" class="result-box" hidden></div>
         ${rubric ? `<details class="rubric-details"><summary>Rubric target</summary><ul>${rubric}</ul></details>` : ""}
@@ -256,7 +258,7 @@
     if (state.index + 1 >= state.items.length) {
       const message = type === "mcq"
         ? (state.reviewMode ? "Any MCQ you answered correctly was cleared from missed review." : "Missed MCQs were saved for later review.")
-        : "You finished this 10-prompt set. Generate another set when you want a fresh round.";
+        : "You finished this prompt. Generate another one when you want a fresh round.";
       renderMessage("Set complete.", message);
       window.APWorldStore.updateMissedCount();
       return;
@@ -292,25 +294,33 @@
     return String(value || "").trim().slice(0, 1).toUpperCase();
   }
 
+  function renderDocumentsSection(item) {
+    const documents = (item.documents || []).map((document, index) => renderDocument(document, index)).join("");
+    if (!documents) return "";
+    const heading = item.documents.length === 1 ? "Source" : "Documents";
+    return `<div class="document-box"><h3>${heading}</h3><ol class="document-list">${documents}</ol></div>`;
+  }
+
   function renderDocument(document, index) {
     if (typeof document === "string") {
       return `
         <li class="document-item">
           <div class="document-title">Document ${index + 1}</div>
-          <p class="document-text">${escapeHtml(document)}</p>
+          <p class="document-text">"${escapeHtml(document)}"</p>
         </li>
       `;
     }
 
     const title = document?.title || `Document ${index + 1}`;
-    const sourceParts = [document?.source, document?.date].filter(Boolean).join(", ");
+    const source = document?.source || "";
+    const date = document?.date || "";
+    const sourceParts = [source, date].filter(Boolean).join(", ");
     const context = document?.context ? `<div class="document-source">${escapeHtml(document.context)}</div>` : "";
     return `
       <li class="document-item">
         <div class="document-title">${escapeHtml(title)}</div>
-        ${sourceParts ? `<div class="document-source">${escapeHtml(sourceParts)}</div>` : ""}
+        <p class="document-text">"${escapeHtml(document?.text || "")}"${sourceParts ? ` - <span class="document-attribution">${escapeHtml(sourceParts)}</span>` : ""}</p>
         ${context}
-        <p class="document-text">${escapeHtml(document?.text || "")}</p>
       </li>
     `;
   }
@@ -328,13 +338,13 @@
 
     if (practiceType === "mcq") {
       return {
-        items: [
+        items: expandFallbackItems([
           {
             id: "static-mcq-1",
             type: "mcq",
             period: "Period 1: c. 1200-c. 1450",
             skill: "Causation",
-            stimulus: "Merchants, missionaries, and envoys traveled across Mongol-controlled routes linking China, Central Asia, Persia, and Europe.",
+            stimulus: "Use the source below to answer the question.",
             prompt: "Which outcome most directly resulted from the situation described?",
             choices: [
               { id: "A", text: "The permanent end of all nomadic states" },
@@ -343,14 +353,23 @@
               { id: "D", text: "The isolation of China from Afro-Eurasia" }
             ],
             answer: "B",
-            explanation: "Mongol rule protected routes and helped ideas, goods, technologies, and diseases move across Eurasia."
+            explanation: "Mongol rule protected routes and helped ideas, goods, technologies, and diseases move across Eurasia.",
+            documents: [
+              {
+                title: "Source 1",
+                source: "Persian merchant traveling between Samarkand and Khanbaliq under Mongol rule",
+                date: "Yuan dynasty, c. 1280",
+                context: "Mongol authorities protected major routes across Eurasia and encouraged long-distance commerce.",
+                text: "At the relay stations our animals are exchanged before their strength fails, and the tablets carried by the khan's officials open gates that once closed at sunset. In the markets I see paper from China, horses from the steppe, glass from Syria, and bolts of cloth that have crossed more lands than any single man could name."
+              }
+            ]
           },
           {
             id: "static-mcq-2",
             type: "mcq",
             period: "Period 3: c. 1750-c. 1900",
             skill: "Comparison",
-            stimulus: "Industrial factories concentrated workers near machines and used new sources of power to increase production.",
+            stimulus: "Use the source below to answer the question.",
             prompt: "Which social change was most closely connected to industrialization?",
             choices: [
               { id: "A", text: "The disappearance of wage labor" },
@@ -359,14 +378,23 @@
               { id: "D", text: "The growth of urban working classes" }
             ],
             answer: "D",
-            explanation: "Factories drew workers into cities and contributed to new industrial working-class communities."
+            explanation: "Factories drew workers into cities and contributed to new industrial working-class communities.",
+            documents: [
+              {
+                title: "Source 1",
+                source: "Textile worker writing to a local newspaper about factory conditions",
+                date: "Northern England, 1842",
+                context: "Industrial workers increasingly criticized working conditions in print.",
+                text: "We labor from early morning until the lamps are lit, breathing lint and heat while the engines never rest. My eldest daughter is twelve and earns a little beside me, but she returns home too tired to read. The masters speak of progress, yet in our street several families sleep in one damp room."
+              }
+            ]
           },
           {
             id: "static-mcq-3",
             type: "mcq",
             period: "Period 4: c. 1900-present",
             skill: "Contextualization",
-            stimulus: "After 1945, many colonized peoples used nationalism and international pressure to demand sovereignty.",
+            stimulus: "Use the source below to answer the question.",
             prompt: "The development described is best understood in the context of",
             choices: [
               { id: "A", text: "the beginning of the Neolithic Revolution" },
@@ -375,9 +403,18 @@
               { id: "D", text: "the spread of Buddhism along the Silk Roads" }
             ],
             answer: "C",
-            explanation: "World War II weakened European empires and strengthened anti-colonial nationalist movements."
+            explanation: "World War II weakened European empires and strengthened anti-colonial nationalist movements.",
+            documents: [
+              {
+                title: "Source 1",
+                source: "Nationalist organizer speaking to supporters before independence negotiations",
+                date: "South Asia, 1946",
+                context: "Anti-colonial leaders demanded sovereignty while debating what kind of state should replace imperial rule.",
+                text: "We do not ask merely that one set of officials depart and another sit behind the same desks. Villagers who paid taxes without representation, workers who supplied wartime factories, and students who filled the prisons expect a government answerable to them. Freedom will be measured by whether these instruments can be turned toward our own people."
+              }
+            ]
           }
-        ]
+        ], labels.mcq.count, "mcq")
       };
     }
 
@@ -386,8 +423,17 @@
         ...shared,
         id: "static-saq-1",
         type: "saq",
-        stimulus: "Early modern rulers used military force, taxation, religion, and visual displays to maintain authority.",
+        stimulus: "Use the source below to answer all parts of the question.",
         prompt: "A. Identify ONE method rulers used to legitimize power. B. Explain ONE way that method strengthened a state. C. Explain ONE limitation of that method.",
+        documents: [
+          {
+            title: "Source 1",
+            source: "Court chronicler praising an early modern ruler after a successful siege",
+            date: "Mughal Empire, c. 1570",
+            context: "Early modern empires often combined military power with claims of religious, dynastic, or bureaucratic legitimacy.",
+            text: "The emperor's cannon opened the fort, but victory was secured also by order. Accountants recorded each village newly placed under imperial revenue, judges promised protection to merchants, and poets compared the ruler's justice to shade in the hot season. Soldiers may break a gate in one day; obedience lasts only when people believe the ruler commands more than iron and fire."
+          }
+        ],
         rubric: ["Directly answer A, B, and C.", "Use specific historical evidence.", "Explain the connection to state power."]
       },
       dbq: {
@@ -434,12 +480,31 @@
         id: "static-leq-1",
         type: "leq",
         period: "Period 4: c. 1900-present",
+        stimulus: "Use the source below as context for the essay prompt.",
         prompt: "Evaluate the extent to which decolonization after 1945 changed political structures in Asia or Africa.",
+        documents: [
+          {
+            title: "Source 1",
+            source: "Newly elected African legislator addressing a national assembly after independence",
+            date: "Accra, 1958",
+            context: "Decolonization created new states that often inherited colonial borders and economies.",
+            text: "The flag has changed, and with it the hope of our people, but the railway still runs from mine to port rather than village to village. The borders enclose communities that traded and quarreled long before Europeans drew maps in distant offices. We must build a nation from tools left by an empire."
+          }
+        ],
         rubric: ["Thesis", "Contextualization", "Specific evidence", "Historical reasoning", "Complexity"]
       }
     };
 
     return { items: [written[practiceType]] };
+  }
+
+  function expandFallbackItems(items, count, practiceType) {
+    const output = [];
+    for (let index = 0; index < count; index += 1) {
+      const clone = JSON.parse(JSON.stringify(items[index % items.length]));
+      output.push({ ...clone, id: `static-${practiceType}-${index + 1}` });
+    }
+    return output;
   }
 
   function clientGradeFallback(practiceType, detail) {

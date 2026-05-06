@@ -115,7 +115,8 @@
     try {
       const response = await fetch(`${apiRoot}/api/status`);
       const status = await response.json();
-      const label = status.liveAI ? `Live AI: ${status.model}` : "Sample mode";
+      const provider = status.provider || "AI";
+      const label = status.liveAI ? `Live ${provider}: ${status.model}` : "Sample mode";
       nodes.forEach((node) => {
         node.textContent = label;
       });
