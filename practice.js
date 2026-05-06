@@ -480,17 +480,9 @@
         id: "static-leq-1",
         type: "leq",
         period: "Period 4: c. 1900-present",
-        stimulus: "Use the source below as context for the essay prompt.",
+        stimulus: "",
         prompt: "Evaluate the extent to which decolonization after 1945 changed political structures in Asia or Africa.",
-        documents: [
-          {
-            title: "Source 1",
-            source: "Newly elected African legislator addressing a national assembly after independence",
-            date: "Accra, 1958",
-            context: "Decolonization created new states that often inherited colonial borders and economies.",
-            text: "The flag has changed, and with it the hope of our people, but the railway still runs from mine to port rather than village to village. The borders enclose communities that traded and quarreled long before Europeans drew maps in distant offices. We must build a nation from tools left by an empire."
-          }
-        ],
+        documents: [],
         rubric: ["Thesis", "Contextualization", "Specific evidence", "Historical reasoning", "Complexity"]
       }
     };

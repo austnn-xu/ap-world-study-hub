@@ -258,7 +258,7 @@ async function createPracticeWithAI(request) {
     "Return valid JSON only. No markdown, no prose outside JSON.",
     "Use this exact top-level shape: {\"title\":\"...\",\"items\":[...]}",
     "Each item must include: id, type, period, skill, stimulus, prompt, choices, answer, explanation, rubric, documents, tags.",
-    "Every item must include a documents array. MCQ, SAQ, and LEQ need at least 1 source document; DBQ needs 4-6 source documents.",
+    "Every item must include a documents array. MCQ and SAQ need at least 1 source document; DBQ needs 4-6 source documents; LEQ must use an empty documents array.",
     "Every document must be an object with text, source, date, context, and title. The text must be a full source-style excerpt of 60-140 words, not a summary.",
     "Write each document so the site can display it in this exact exam-style order: \"long quote or excerpt\" - \"specific person, role, or civilian in context\", \"specific date, dynasty, or time period\".",
     "The source field should be the person or group plus context, like \"Chinese merchant in Quanzhou describing Indian Ocean trade\". The date field should be specific, like \"Yuan dynasty, c. 1290\" or \"Manchester, 1842\".",
@@ -268,7 +268,7 @@ async function createPracticeWithAI(request) {
     "Create exactly the requested number of separate items.",
     "For SAQ items, make one three-part prompt labeled A, B, and C based on at least one source document.",
     "For DBQ items, include 4-6 invented AP-style source documents for each item.",
-    "For LEQ items, ask for one thesis-driven essay and include at least one source document for context."
+    "For LEQ items, ask for one thesis-driven essay only. Do not include any source document for LEQ."
   ].join(" ");
 
   const prompt = [
@@ -417,7 +417,7 @@ function normalizeItem(item, request, index) {
     answer: cleanText(item.answer).slice(0, 1).toUpperCase(),
     explanation: cleanText(item.explanation, "Review the relevant AP World concept and historical evidence."),
     rubric: Array.isArray(item.rubric) ? item.rubric.map((entry) => cleanText(entry)).filter(Boolean) : [],
-    documents: Array.isArray(item.documents) ? item.documents.map((entry, docIndex) => normalizeDocument(entry, docIndex)).filter(Boolean) : [],
+    documents: request.type === "leq" ? [] : (Array.isArray(item.documents) ? item.documents.map((entry, docIndex) => normalizeDocument(entry, docIndex)).filter(Boolean) : []),
     tags: Array.isArray(item.tags) ? item.tags.map((entry) => cleanText(entry)).filter(Boolean) : []
   };
 }
@@ -889,7 +889,7 @@ const sampleWritten = {
     item: {
       period: "Period 4: c. 1900-present",
       skill: "Continuity and change",
-      stimulus: "Use the source below as context for the essay prompt.",
+      stimulus: "",
       prompt: "Evaluate the extent to which decolonization after 1945 changed political structures in Asia and Africa.",
       choices: [],
       answer: "",
@@ -900,15 +900,7 @@ const sampleWritten = {
         "Evidence: up to 2 points.",
         "Analysis and reasoning: up to 2 points."
       ],
-      documents: [
-        {
-          title: "Source 1",
-          source: "Nationalist organizer speaking to supporters before independence negotiations",
-          date: "South Asia, 1946",
-          context: "Anti-colonial leaders demanded sovereignty while debating what kind of state should replace imperial rule.",
-          text: "We do not ask merely that one set of officials depart and another sit behind the same desks. Villagers who paid taxes without representation, workers who supplied wartime factories, and students who filled the prisons expect a government answerable to them. Yet the borders, courts, and army we inherit were built for empire. Freedom will be measured by whether these instruments can be turned toward our own people."
-        }
-      ],
+      documents: [],
       tags: ["decolonization", "nationalism", "postwar"]
     }
   }
