@@ -340,35 +340,59 @@ async function gradeWithAI(request) {
 
 async function callGeminiJson(instructions, prompt) {
   const endpoint = `${geminiApiUrl}/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiKey)}`;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: instructions }]
-      },
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${prompt}\n\nReturn only valid JSON.` }]
-        }
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.75
+  const body = JSON.stringify({
+    systemInstruction: {
+      parts: [{ text: instructions }]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: `${prompt}\n\nReturn only valid JSON.` }]
       }
-    })
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.75
+    }
   });
 
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`Gemini returned ${response.status}: ${details.slice(0, 180)}`);
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body
+      });
+
+      if (!response.ok) {
+        const details = await response.text();
+        const error = new Error(`Gemini returned ${response.status}: ${details.slice(0, 180)}`);
+        error.statusCode = response.status;
+        throw error;
+      }
+
+      const data = await response.json();
+      const text = extractResponseText(data);
+      if (!text) throw new Error("Gemini returned no text.");
+      return JSON.parse(stripJsonFence(text));
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2 || !shouldRetryGemini(error)) break;
+      await wait(800 + attempt * 1200);
+    }
   }
 
-  const data = await response.json();
-  const text = extractResponseText(data);
-  if (!text) throw new Error("Gemini returned no text.");
-  return JSON.parse(stripJsonFence(text));
+  throw lastError;
+}
+
+function shouldRetryGemini(error) {
+  const status = Number(error?.statusCode || 0);
+  return status === 429 || status >= 500 || /fetch failed|network|temporar|overload|high demand/i.test(String(error?.message || ""));
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function extractResponseText(data) {
