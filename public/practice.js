@@ -123,6 +123,7 @@
   function renderMcq(item, warning) {
     const progress = `${state.index + 1} of ${state.items.length}`;
     const documents = renderDocumentsSection(item);
+    const stimulus = shouldHideDuplicateStimulus(item) ? "" : item.stimulus;
     const choices = (item.choices || []).map((choice) => `
       <button class="choice-button" type="button" data-choice="${escapeHtml(choice.id)}">
         <span class="choice-letter">${escapeHtml(choice.id)}</span>
@@ -138,7 +139,7 @@
           <span>${escapeHtml(state.reviewMode ? "Review missed" : item.period || "AP World")}</span>
           <span>${escapeHtml(item.skill || "Practice")}</span>
         </div>
-        ${item.stimulus ? `<div class="stimulus">${escapeHtml(item.stimulus)}</div>` : ""}
+        ${stimulus ? `<div class="stimulus">${escapeHtml(stimulus)}</div>` : ""}
         ${documents}
         <h2>${escapeHtml(item.prompt)}</h2>
         <div class="choices">${choices}</div>
@@ -303,6 +304,23 @@
     if (!documents) return "";
     const heading = item.documents.length === 1 ? "Source" : "Documents";
     return `<div class="document-box"><h3>${heading}</h3><ol class="document-list">${documents}</ol></div>`;
+  }
+
+  function shouldHideDuplicateStimulus(item) {
+    const stimulus = normalizeTextForCompare(item.stimulus);
+    if (!stimulus || !Array.isArray(item.documents) || !item.documents.length) return false;
+    return item.documents.some((document) => {
+      const documentText = normalizeTextForCompare(document?.text || document);
+      return documentText && (documentText.includes(stimulus) || stimulus.includes(documentText));
+    });
+  }
+
+  function normalizeTextForCompare(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/["'.,;:!?()[\]{}-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function renderDocument(document, index) {

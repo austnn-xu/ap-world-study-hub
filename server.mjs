@@ -403,12 +403,14 @@ function ensureItemCount(items, fallbackItems, request) {
 function normalizeItem(item, request, index) {
   const type = cleanText(item.type, request.type).toLowerCase();
   const choices = Array.isArray(item.choices) ? item.choices : [];
+  const documents = request.type === "leq" ? [] : (Array.isArray(item.documents) ? item.documents.map((entry, docIndex) => normalizeDocument(entry, docIndex)).filter(Boolean) : []);
+  const stimulus = cleanText(item.stimulus);
   return {
     id: cleanText(item.id, `${request.type}-${Date.now()}-${index}`),
     type: ["mcq", "saq", "dbq", "leq"].includes(type) ? type : request.type,
     period: cleanText(item.period, request.period),
     skill: cleanText(item.skill, "AP historical reasoning"),
-    stimulus: cleanText(item.stimulus),
+    stimulus: isDuplicateDocumentText(stimulus, documents) ? "" : stimulus,
     prompt: cleanText(item.prompt, "Practice prompt unavailable."),
     choices: choices.map((choice, choiceIndex) => ({
       id: cleanText(choice.id, "ABCD"[choiceIndex] || String(choiceIndex + 1)).slice(0, 1).toUpperCase(),
@@ -417,9 +419,26 @@ function normalizeItem(item, request, index) {
     answer: cleanText(item.answer).slice(0, 1).toUpperCase(),
     explanation: cleanText(item.explanation, "Review the relevant AP World concept and historical evidence."),
     rubric: Array.isArray(item.rubric) ? item.rubric.map((entry) => cleanText(entry)).filter(Boolean) : [],
-    documents: request.type === "leq" ? [] : (Array.isArray(item.documents) ? item.documents.map((entry, docIndex) => normalizeDocument(entry, docIndex)).filter(Boolean) : []),
+    documents,
     tags: Array.isArray(item.tags) ? item.tags.map((entry) => cleanText(entry)).filter(Boolean) : []
   };
+}
+
+function isDuplicateDocumentText(stimulus, documents) {
+  const normalizedStimulus = normalizeTextForCompare(stimulus);
+  if (!normalizedStimulus || !Array.isArray(documents)) return false;
+  return documents.some((document) => {
+    const normalizedDocument = normalizeTextForCompare(document?.text);
+    return normalizedDocument && (normalizedDocument.includes(normalizedStimulus) || normalizedStimulus.includes(normalizedDocument));
+  });
+}
+
+function normalizeTextForCompare(value) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/["'.,;:!?()[\]{}-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeDocument(entry, index) {
