@@ -1,5 +1,5 @@
 (function () {
-  const appVersion = "2026.05.06.3";
+  const appVersion = "2026.05.06.4";
   const missedKey = "apworld.missed.mcq.v1";
   const reviewKey = "apworld.reviews.v1";
   const themeKey = "apworld.theme.v2";
@@ -94,7 +94,13 @@
     document.documentElement.dataset.theme = nextTheme;
     document.documentElement.style.colorScheme = nextTheme;
     localStorage.setItem(themeKey, nextTheme);
+    updateBrowserThemeColor(nextTheme);
     updateThemeToggle(nextTheme);
+  }
+
+  function updateBrowserThemeColor(theme) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "dark" ? "#050505" : "#f5f5f7");
   }
 
   function updateThemeToggle(theme) {
