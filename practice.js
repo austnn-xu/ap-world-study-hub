@@ -55,7 +55,7 @@
     setLoading(true, labels[type].button);
     state.reviewMode = false;
     try {
-      const response = await fetch(`${apiRoot}/api/practice`, {
+      const result = await requestJson("/api/practice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -67,8 +67,6 @@
         })
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not generate practice.");
       state.items = result.items || [];
       state.index = 0;
       renderQuestion(result.warning);
@@ -218,13 +216,11 @@
     resultBox.innerHTML = "<strong>Reading your response...</strong>";
 
     try {
-      const response = await fetch(`${apiRoot}/api/grade`, {
+      const result = await requestJson("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, question: item, answer })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not grade response.");
       renderGrade(resultBox, result);
     } catch (error) {
       renderGrade(resultBox, clientGradeFallback(type, error.message));
@@ -293,6 +289,38 @@
 
   function loadingLabel(label) {
     return `<span class="loading-spinner" aria-hidden="true"></span><span>${escapeHtml(label)}</span>`;
+  }
+
+  async function requestJson(path, options) {
+    const urls = apiUrls(path);
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      for (const url of urls) {
+        try {
+          const response = await fetch(url, options);
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || `Request failed with ${response.status}.`);
+          return result;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (attempt < 2) await wait(850 + attempt * 650);
+    }
+
+    throw lastError || new Error("Could not reach the study server.");
+  }
+
+  function apiUrls(path) {
+    const urls = [`${apiRoot}${path}`];
+    const localUrl = `http://localhost:4173${path}`;
+    if (!urls.includes(localUrl)) urls.push(localUrl);
+    return urls;
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   function normalizeAnswer(value) {
