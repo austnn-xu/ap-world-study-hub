@@ -677,6 +677,10 @@ textarea:focus {
 
 .primary-action,
 .secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   min-height: 44px;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -706,6 +710,22 @@ textarea:focus {
 .secondary-action:hover {
   transform: translateY(-1px);
   box-shadow: var(--glow);
+}
+
+.loading-spinner {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: loadingSpin 780ms linear infinite;
+}
+
+@keyframes loadingSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .link-action {

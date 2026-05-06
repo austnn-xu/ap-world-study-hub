@@ -282,12 +282,16 @@
     state.loading = isLoading;
     if (generateButton) {
       generateButton.disabled = isLoading;
-      generateButton.textContent = isLoading ? "Generating" : label;
+      generateButton.innerHTML = isLoading ? loadingLabel("Generating") : escapeHtml(label);
     }
     if (randomTopicButton) {
       randomTopicButton.disabled = isLoading;
-      randomTopicButton.textContent = isLoading ? "Generating" : "Generate Random Topic";
+      randomTopicButton.innerHTML = isLoading ? loadingLabel("Generating") : "Generate Random Topic";
     }
+  }
+
+  function loadingLabel(label) {
+    return `<span class="loading-spinner" aria-hidden="true"></span><span>${escapeHtml(label)}</span>`;
   }
 
   function normalizeAnswer(value) {
