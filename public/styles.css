@@ -11,9 +11,10 @@
   --faint: #858692;
   --line: rgba(0, 0, 0, 0.1);
   --line-strong: rgba(0, 0, 0, 0.18);
-  --rgb-a: #5ee7ff;
-  --rgb-b: #a78bfa;
-  --rgb-c: #ff6ab7;
+  --rgb-a: #57d7ff;
+  --rgb-b: #9f8cff;
+  --rgb-c: #ff79c7;
+  --rgb-d: #76f0d3;
   --good: #8bd77f;
   --bad: #ff7a96;
   --radius: 8px;
@@ -24,6 +25,12 @@
   --button-surface: #ffffff;
   --button-surface-hover: #f9f9fb;
   --button-text: #050505;
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
 }
 
 html[data-theme="dark"] {
@@ -300,6 +307,8 @@ h1 {
   backdrop-filter: blur(22px);
   transform: perspective(1000px) rotateY(-8deg) rotateX(3deg);
   animation: floatWindow 6.5s ease-in-out infinite;
+  --outline-duration: 16s;
+  --outline-delay: -2.2s;
 }
 
 h2,
@@ -331,10 +340,10 @@ label,
   z-index: 1;
   border-radius: 20px;
   padding: 3px;
-  background: linear-gradient(120deg, var(--rgb-a), var(--rgb-b), var(--rgb-c), var(--rgb-a));
-  background-size: 260% 260%;
+  background: conic-gradient(from var(--border-angle), var(--rgb-a), #7ee4ff 18%, var(--rgb-b) 42%, var(--rgb-c) 68%, var(--rgb-d) 86%, var(--rgb-a));
   opacity: 0.95;
-  animation: outlineFlow 5.8s linear infinite;
+  animation: borderSpin var(--outline-duration, 14s) linear infinite;
+  animation-delay: var(--outline-delay, 0s);
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -350,11 +359,11 @@ label,
   z-index: -1;
   border-radius: 24px;
   padding: 6px;
-  background: linear-gradient(120deg, var(--rgb-a), var(--rgb-b), var(--rgb-c), var(--rgb-a));
-  background-size: 260% 260%;
+  background: conic-gradient(from var(--border-angle), var(--rgb-a), #7ee4ff 18%, var(--rgb-b) 42%, var(--rgb-c) 68%, var(--rgb-d) 86%, var(--rgb-a));
   filter: blur(10px);
-  opacity: 0.42;
-  animation: outlineFlow 5.8s linear infinite;
+  opacity: 0.32;
+  animation: borderSpin 19s linear infinite reverse;
+  animation-delay: -6s;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -375,12 +384,9 @@ label,
   }
 }
 
-@keyframes outlineFlow {
-  0% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 260% 50%;
+@keyframes borderSpin {
+  to {
+    --border-angle: 360deg;
   }
 }
 
@@ -555,6 +561,8 @@ html[data-theme="light"] .product-choice.is-wrong {
   background: var(--button-surface);
   box-shadow: var(--shadow), 0 0 20px rgba(94, 231, 255, 0.08);
   transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  --outline-duration: 15s;
+  --outline-delay: 0s;
 }
 
 .home-button::before,
@@ -566,9 +574,9 @@ html[data-theme="light"] .product-choice.is-wrong {
   border-radius: inherit;
   content: "";
   pointer-events: none;
-  background: linear-gradient(120deg, var(--rgb-a), var(--rgb-b), var(--rgb-c), var(--rgb-a));
-  background-size: 260% 260%;
-  animation: outlineFlow 5.8s linear infinite;
+  background: conic-gradient(from var(--border-angle), var(--rgb-a), #7ee4ff 18%, var(--rgb-b) 42%, var(--rgb-c) 68%, var(--rgb-d) 86%, var(--rgb-a));
+  animation: borderSpin var(--outline-duration, 14s) linear infinite;
+  animation-delay: var(--outline-delay, 0s);
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -577,6 +585,31 @@ html[data-theme="light"] .product-choice.is-wrong {
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   mask-composite: exclude;
+}
+
+.home-button:nth-child(1) {
+  --outline-duration: 16.5s;
+  --outline-delay: -1.1s;
+}
+
+.home-button:nth-child(2) {
+  --outline-duration: 18s;
+  --outline-delay: -5.4s;
+}
+
+.home-button:nth-child(3) {
+  --outline-duration: 15.25s;
+  --outline-delay: -8.7s;
+}
+
+.home-button:nth-child(4) {
+  --outline-duration: 17.4s;
+  --outline-delay: -3.2s;
+}
+
+.home-button:nth-child(5) {
+  --outline-duration: 19s;
+  --outline-delay: -11.6s;
 }
 
 .home-button > span,
@@ -698,6 +731,8 @@ html[data-theme="light"] .product-choice.is-wrong {
   padding: 20px;
   border-color: transparent;
   background: var(--button-surface);
+  --outline-duration: 20s;
+  --outline-delay: -9s;
 }
 
 .review-shell h2 {
