@@ -5,18 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f5f5f7">
     <script src="theme-init.js"></script>
-    <meta http-equiv="refresh" content="0; url=https://austnn-xu.github.io/ap-world-history-timeline/">
-    <title>Opening Timeline | AP World Study Hub</title>
+    <title>Timeline | AP World Study Hub</title>
     <link rel="stylesheet" href="styles.css">
   </head>
-  <body>
-    <main class="redirect-page">
-      <section class="redirect-panel">
-        <p class="eyebrow">Timeline</p>
-        <h1>Opening the original AP World timeline.</h1>
-        <p>If it does not open automatically, use the button below.</p>
-        <a class="primary-action link-action" href="https://austnn-xu.github.io/ap-world-history-timeline/">Open Timeline</a>
+  <body class="timeline-site">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="AP World Study Hub home">
+        <span>AP World Study Hub</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="mcq.html">MCQ</a>
+        <a href="saq.html">SAQ</a>
+        <a href="dbq.html">DBQ</a>
+        <a href="leq.html">LEQ</a>
+        <a class="active" href="timeline.html">Timeline</a>
+      </nav>
+    </header>
+
+    <main class="timeline-page timeline-app" id="top">
+      <section class="timeline-hero" aria-labelledby="pageTitle">
+        <div>
+          <p class="eyebrow">c. 1200 CE to the present</p>
+          <h1 id="pageTitle">AP World History Timeline</h1>
+          <p class="timeline-hero-copy">
+            A clean vertical map of every AP World unit, built for quick period review, major events, vocab, and cause-and-effect connections before you practice.
+          </p>
+        </div>
+        <form class="timeline-search" id="searchForm" role="search">
+          <label for="timelineSearch">Search AP World</label>
+          <div class="timeline-search-row">
+            <input
+              id="timelineSearch"
+              type="search"
+              placeholder="Try Lenin, Buddhism, silver, Mongols..."
+              autocomplete="off"
+            >
+            <button class="primary-action" type="submit">Search</button>
+          </div>
+          <p class="search-result" id="searchResult" aria-live="polite"></p>
+        </form>
+        <nav class="unit-nav" aria-label="Timeline units" id="unitNav"></nav>
+        <div class="timeline-hero-actions" aria-label="Timeline controls">
+          <a class="primary-action" href="#timeline">Start Timeline</a>
+          <button class="secondary-action" id="expandAll" type="button">Expand All</button>
+        </div>
+      </section>
+
+      <section class="timeline-shell" id="timeline" aria-label="AP World History timeline">
+        <aside class="reading-panel" aria-live="polite">
+          <p class="panel-kicker" id="panelUnit">Unit 1</p>
+          <h2 id="panelTitle">Hover a topic</h2>
+          <p id="panelText">
+            Topic details, dates, AP skills, and related images will appear here while you explore the line.
+          </p>
+          <div class="panel-meta">
+            <span id="panelRange">c. 1200-present</span>
+            <span id="panelSkill">Continuity and change</span>
+          </div>
+          <div class="panel-images" id="panelImages" aria-hidden="true"></div>
+          <div class="timeline-study-grid">
+            <section>
+              <h3>Key Points</h3>
+              <ul id="panelPoints"></ul>
+            </section>
+            <section>
+              <h3>Vocab</h3>
+              <div class="vocab-list" id="panelVocab"></div>
+            </section>
+          </div>
+          <p class="remember-note" id="panelRemember"></p>
+        </aside>
+
+        <div class="line-wrap">
+          <div class="timeline-line" aria-hidden="true">
+            <div class="line-progress" id="lineProgress"></div>
+          </div>
+          <div class="image-cloud" id="imageCloud" aria-hidden="true"></div>
+          <div class="timeline-list" id="timelineList"></div>
+        </div>
       </section>
     </main>
+
+    <script src="app.js"></script>
+    <script src="timeline.js"></script>
   </body>
 </html>

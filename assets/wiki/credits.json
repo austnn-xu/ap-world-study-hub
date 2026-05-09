@@ -1,0 +1,170 @@
+﻿[
+    {
+        "name":  "song-dynasty",
+        "page":  "Song_dynasty",
+        "file":  "assets/wiki/song-dynasty.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Song_dynasty",
+        "title":  "Song dynasty",
+        "description":  "Imperial dynasty of China (960–1279)"
+    },
+    {
+        "name":  "mansa-musa",
+        "page":  "Mansa_Musa",
+        "file":  "assets/wiki/mansa-musa.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Mansa_Musa",
+        "title":  "Mansa Musa",
+        "description":  "Ruler of Mali from c. 1312 to c. 1337"
+    },
+    {
+        "name":  "great-mosque-djenne",
+        "page":  "Great_Mosque_of_Djenne",
+        "file":  "assets/wiki/great-mosque-djenne.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Great_Mosque_of_Djenn%C3%A9",
+        "title":  "Great Mosque of Djenné",
+        "description":  "Mosque in Djenné, Mali"
+    },
+    {
+        "name":  "inca-empire",
+        "page":  "Inca_Empire",
+        "file":  "assets/wiki/inca-empire.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Inca_Empire",
+        "title":  "Inca Empire",
+        "description":  "1438–1533 empire in South America"
+    },
+    {
+        "name":  "silk-road",
+        "page":  "Silk_Road",
+        "file":  "assets/wiki/silk-road.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Silk_Road",
+        "title":  "Silk Road",
+        "description":  "Historical network of Eurasian trade routes"
+    },
+    {
+        "name":  "black-death",
+        "page":  "Black_Death",
+        "file":  "assets/wiki/black-death.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Black_Death",
+        "title":  "Black Death",
+        "description":  "1346–1353 pandemic in Eurasia and North Africa"
+    },
+    {
+        "name":  "safavid-iran",
+        "page":  "Safavid_Iran",
+        "file":  "assets/wiki/safavid-iran.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Safavid_Iran",
+        "title":  "Safavid Iran",
+        "description":  "Iran under the Safavid dynasty from 1501 to 1736"
+    },
+    {
+        "name":  "qing-dynasty",
+        "page":  "Qing_dynasty",
+        "file":  "assets/wiki/qing-dynasty.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Qing_dynasty",
+        "title":  "Qing dynasty",
+        "description":  "Manchu-led dynasty of China (1644–1912)"
+    },
+    {
+        "name":  "atlantic-slave-trade",
+        "page":  "Atlantic_slave_trade",
+        "file":  "assets/wiki/atlantic-slave-trade.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Atlantic_slave_trade",
+        "title":  "Atlantic slave trade",
+        "description":  "Slave trade between Africa and the West"
+    },
+    {
+        "name":  "french-revolution",
+        "page":  "French_Revolution",
+        "file":  "assets/wiki/french-revolution.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/French_Revolution",
+        "title":  "French Revolution",
+        "description":  "1789–1799 sociopolitical change in France"
+    },
+    {
+        "name":  "simon-bolivar",
+        "page":  "Simon_Bolivar",
+        "file":  "assets/wiki/simon-bolivar.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Sim%C3%B3n_Bol%C3%ADvar",
+        "title":  "Simón Bolívar",
+        "description":  "Venezuelan statesman and military officer (1783–1830)"
+    },
+    {
+        "name":  "meiji-restoration",
+        "page":  "Meiji_Restoration",
+        "file":  "assets/wiki/meiji-restoration.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Meiji_Restoration",
+        "title":  "Meiji Restoration",
+        "description":  "1868 return to imperial rule in Japan"
+    },
+    {
+        "name":  "scramble-for-africa",
+        "page":  "Scramble_for_Africa",
+        "file":  "assets/wiki/scramble-for-africa.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Scramble_for_Africa",
+        "title":  "Scramble for Africa",
+        "description":  "1870s–1914 European colonisation of Africa"
+    },
+    {
+        "name":  "indian-rebellion",
+        "page":  "Indian_Rebellion_of_1857",
+        "file":  "assets/wiki/indian-rebellion.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Indian_Rebellion_of_1857",
+        "title":  "Indian Rebellion of 1857",
+        "description":  "Uprising against British Company rule"
+    },
+    {
+        "name":  "vladimir-lenin",
+        "page":  "Vladimir_Lenin",
+        "file":  "assets/wiki/vladimir-lenin.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Vladimir_Lenin",
+        "title":  "Vladimir Lenin",
+        "description":  "Leader of the Soviet Union from 1922 to 1924"
+    },
+    {
+        "name":  "great-depression",
+        "page":  "Great_Depression",
+        "file":  "assets/wiki/great-depression.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Great_Depression",
+        "title":  "Great Depression",
+        "description":  "Worldwide economic depression (1929–1939)"
+    },
+    {
+        "name":  "the-holocaust",
+        "page":  "The_Holocaust",
+        "file":  "assets/wiki/the-holocaust.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/The_Holocaust",
+        "title":  "The Holocaust",
+        "description":  "Genocide of European Jews by Nazi Germany"
+    },
+    {
+        "name":  "cold-war",
+        "page":  "Cold_War",
+        "file":  "assets/wiki/cold-war.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Cold_War",
+        "title":  "Cold War",
+        "description":  "1947–1991 geopolitical rivalry between US and USSR"
+    },
+    {
+        "name":  "partition-india",
+        "page":  "Partition_of_India",
+        "file":  "assets/wiki/partition-india.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Partition_of_India",
+        "title":  "Partition of India",
+        "description":  "1947 division of British India"
+    },
+    {
+        "name":  "globalization",
+        "page":  "Globalization",
+        "file":  "assets/wiki/globalization.png",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Globalization",
+        "title":  "Globalization",
+        "description":  "Spread of world views, products, ideas, capital and labor"
+    },
+    {
+        "name":  "container-ship",
+        "page":  "Container_ship",
+        "file":  "assets/wiki/container-ship.jpg",
+        "sourceUrl":  "https://en.wikipedia.org/wiki/Container_ship",
+        "title":  "Container ship",
+        "description":  "Ship that carries cargo in intermodal containers"
+    }
+]

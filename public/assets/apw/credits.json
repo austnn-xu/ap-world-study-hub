@@ -1,0 +1,83 @@
+﻿[
+    {
+        "name":  "song-china-city",
+        "query":  "Song dynasty China city painting",
+        "file":  "assets/apw/song-china-city.jpg",
+        "sourceTitle":  "File:Bianjing city gate.JPG",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Bianjing_city_gate.JPG",
+        "artist":  "Zhang Zeduan",
+        "license":  "Public domain"
+    },
+    {
+        "name":  "great-mosque-djenne",
+        "query":  "Great Mosque of Djenne",
+        "file":  "assets/apw/great-mosque-djenne.jpg",
+        "sourceTitle":  "File:Djenne great mud mosque.jpg",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Djenne_great_mud_mosque.jpg",
+        "artist":  "Ruud Zwart",
+        "license":  "CC BY-SA 3.0"
+    },
+    {
+        "name":  "mansa-musa",
+        "query":  "Mansa Musa Catalan Atlas",
+        "file":  "assets/apw/mansa-musa.jpg",
+        "sourceTitle":  "File:African king from Catalan Atlas (1375).jpg",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:African_king_from_Catalan_Atlas_(1375).jpg",
+        "artist":  "Cresques Abraham",
+        "license":  "Public domain"
+    },
+    {
+        "name":  "inca-terraces",
+        "query":  "Inca terraces Andes",
+        "file":  "assets/apw/inca-terraces.jpg",
+        "sourceTitle":  "File:Lands of the Andes and the Desert.djvu",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Lands_of_the_Andes_and_the_Desert.djvu",
+        "artist":  "\nFrank George Carpenter",
+        "license":  "Public domain"
+    },
+    {
+        "name":  "silk-road-caravan",
+        "query":  "Silk Road caravan",
+        "file":  "assets/apw/silk-road-caravan.jpg",
+        "sourceTitle":  "File:Catalan Atlas caravan drawing.jpg",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Catalan_Atlas_caravan_drawing.jpg",
+        "artist":  "w:Abraham Cresques",
+        "license":  "Public domain"
+    },
+    {
+        "name":  "mongol-empire-map",
+        "query":  "Mongol Empire map",
+        "file":  "assets/apw/mongol-empire-map.jpg",
+        "sourceTitle":  "File:British Empire and Mongol Empire.svg",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:British_Empire_and_Mongol_Empire.svg",
+        "artist":  "DannamEmpire",
+        "license":  "CC BY 4.0"
+    },
+    {
+        "name":  "black-death",
+        "query":  "Black Death medieval manuscript",
+        "file":  "assets/apw/black-death.jpg",
+        "sourceTitle":  "File:An illustrated manuscript of one of Amir Khusrau\u0027s poems 1.jpg",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:An_illustrated_manuscript_of_one_of_Amir_Khusrau%27s_poems_1.jpg",
+        "artist":  "Amir Khusrau",
+        "license":  "Public domain"
+    },
+    {
+        "name":  "ottoman-sultan",
+        "query":  "Suleiman the Magnificent",
+        "file":  "assets/apw/ottoman-sultan.jpg",
+        "sourceTitle":  "File:00.Ottoman Empire in 1566 Suleiman the Magnificent.00.jpg",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:00.Ottoman_Empire_in_1566_Suleiman_the_Magnificent.00.jpg",
+        "artist":  "flag_mapper",
+        "license":  "CC BY-SA 4.0"
+    },
+    {
+        "name":  "safavid-isfahan",
+        "query":  "Shah Mosque Isfahan",
+        "file":  "assets/apw/safavid-isfahan.jpg",
+        "sourceTitle":  "File:Frame in the frame of Imam Mosque of Isfahan.jpg",
+        "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Frame_in_the_frame_of_Imam_Mosque_of_Isfahan.jpg",
+        "artist":  "Yare zaman2000",
+        "license":  "CC BY-SA 4.0"
+    }
+]
