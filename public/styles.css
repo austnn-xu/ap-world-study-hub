@@ -703,6 +703,59 @@ html[data-theme="light"] .product-choice.is-wrong {
   line-height: 1.62;
 }
 
+.ai-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr);
+  gap: 22px;
+  width: min(var(--max), calc(100% - 44px));
+  margin: -38px auto 78px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--panel) 92%, white 8%), var(--panel));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px) saturate(1.08);
+}
+
+.ai-copy {
+  display: grid;
+  align-content: center;
+}
+
+.ai-copy h2 {
+  max-width: 520px;
+  margin: 18px 0 12px;
+  color: var(--heading);
+  font-size: clamp(1.9rem, 4vw, 3.1rem);
+  line-height: 1.04;
+}
+
+.ai-copy p,
+.ai-points p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.64;
+}
+
+.ai-points {
+  display: grid;
+  gap: 12px;
+}
+
+.ai-points div {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+}
+
+.ai-points strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--heading);
+}
+
 .review-section {
   display: grid;
   gap: 14px;
@@ -1330,7 +1383,8 @@ html[data-theme="light"] .document-item {
 
   .practice-workbench,
   .study-grid,
-  .review-fields {
+  .review-fields,
+  .ai-section {
     grid-template-columns: 1fr;
   }
 
@@ -1397,10 +1451,16 @@ html[data-theme="light"] .document-item {
 
   .status-band,
   .study-grid,
+  .ai-section,
   .review-section,
   .practice-layout,
   .timeline-page {
     width: min(100% - 28px, var(--max));
+  }
+
+  .ai-section {
+    margin-top: -36px;
+    padding: 18px;
   }
 
   .review-shell,
