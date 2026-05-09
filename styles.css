@@ -540,9 +540,11 @@ html[data-theme="light"] .product-choice.is-wrong {
 .empty-state.in-panel,
 .status-band > div,
 .redirect-panel {
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--panel);
+  background:
+    linear-gradient(var(--button-surface), var(--button-surface)) padding-box,
+    linear-gradient(135deg, rgba(94, 231, 255, 0.62), rgba(167, 139, 250, 0.42), rgba(255, 106, 183, 0.6)) border-box;
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px) saturate(1.08);
 }
@@ -707,10 +709,11 @@ html[data-theme="light"] .product-choice.is-wrong {
   width: min(var(--max), calc(100% - 44px));
   margin: -38px auto 78px;
   padding: 24px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--panel) 92%, white 8%), var(--panel));
+    linear-gradient(var(--button-surface), var(--button-surface)) padding-box,
+    linear-gradient(135deg, rgba(94, 231, 255, 0.62), rgba(167, 139, 250, 0.42), rgba(255, 106, 183, 0.6)) border-box;
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px) saturate(1.08);
 }
@@ -742,9 +745,11 @@ html[data-theme="light"] .product-choice.is-wrong {
 
 .ai-points div {
   padding: 16px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--panel-soft);
+  background:
+    linear-gradient(var(--button-surface), var(--button-surface)) padding-box,
+    linear-gradient(135deg, rgba(94, 231, 255, 0.46), rgba(167, 139, 250, 0.28), rgba(255, 106, 183, 0.42)) border-box;
 }
 
 .ai-points strong {
@@ -764,9 +769,11 @@ html[data-theme="light"] .product-choice.is-wrong {
 .review-shell,
 .review-form,
 .review-card {
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--panel);
+  background:
+    linear-gradient(var(--button-surface), var(--button-surface)) padding-box,
+    linear-gradient(135deg, rgba(94, 231, 255, 0.5), rgba(167, 139, 250, 0.32), rgba(255, 106, 183, 0.48)) border-box;
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px) saturate(1.08);
 }
@@ -1512,8 +1519,8 @@ body.timeline-site {
 }
 
 .timeline-app {
-  --timeline-card: color-mix(in srgb, var(--panel-strong) 86%, transparent);
-  --timeline-card-soft: color-mix(in srgb, var(--panel) 82%, transparent);
+  --timeline-card: var(--button-surface);
+  --timeline-card-soft: var(--button-surface);
   width: min(1320px, calc(100% - 44px));
   padding-top: 46px;
 }
@@ -1789,7 +1796,7 @@ body.timeline-site {
 .timeline-app .event-card.active,
 .timeline-app .event-card.locked {
   border-color: color-mix(in srgb, var(--accent, var(--rgb-a)) 55%, var(--line));
-  background: var(--panel-strong);
+  background: var(--button-surface-hover);
   box-shadow: var(--shadow), 0 0 26px color-mix(in srgb, var(--accent, var(--rgb-a)) 16%, transparent);
   transform: translateX(4px);
   outline: none;
