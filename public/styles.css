@@ -446,6 +446,40 @@ label,
     rgba(255, 255, 255, 0.04);
 }
 
+html[data-theme="light"] .hero-product {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 247, 251, 0.94));
+  box-shadow: var(--shadow), 0 18px 42px rgba(94, 231, 255, 0.12);
+}
+
+html[data-theme="light"] .product-toolbar {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="light"] .product-toolbar span {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="light"] .product-line {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+html[data-theme="light"] .product-choice {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+html[data-theme="light"] .product-choice.is-correct {
+  background:
+    linear-gradient(135deg, rgba(139, 215, 127, 0.2), rgba(139, 215, 127, 0.055)),
+    rgba(255, 255, 255, 0.86);
+}
+
+html[data-theme="light"] .product-choice.is-wrong {
+  background:
+    linear-gradient(135deg, rgba(255, 122, 150, 0.16), rgba(255, 122, 150, 0.035)),
+    rgba(255, 255, 255, 0.84);
+}
+
 .product-cursor {
   position: absolute;
   top: -12px;
