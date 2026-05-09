@@ -1,4 +1,9 @@
 {
+  "redirects": [
+    { "source": "/analytics", "destination": "/", "permanent": false },
+    { "source": "/analytics/:path*", "destination": "/", "permanent": false },
+    { "source": "/_vercel/insights/:path*", "destination": "/", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/mcq", "destination": "/mcq.html" },
     { "source": "/saq", "destination": "/saq.html" },
