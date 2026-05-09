@@ -488,32 +488,29 @@ html[data-theme="light"] .product-choice.is-wrong {
 
 .product-cursor {
   position: absolute;
-  top: -12px;
-  left: 28%;
-  width: 24px;
-  height: 30px;
+  top: -10px;
+  left: 29%;
+  width: 25px;
+  height: 32px;
   transform: rotate(-18deg);
-  filter: drop-shadow(0 0 12px rgba(139, 215, 127, 0.55));
+  overflow: visible;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16)) drop-shadow(0 0 8px rgba(139, 215, 127, 0.18));
   animation: cursorFloat 3.4s ease-in-out infinite;
+  shape-rendering: geometricPrecision;
 }
 
-.product-cursor::before,
-.product-cursor::after {
-  position: absolute;
-  content: "";
-  clip-path: polygon(0 0, 0 86%, 29% 65%, 44% 100%, 62% 92%, 46% 58%, 82% 58%);
+.cursor-outline {
+  fill: none;
+  stroke: rgba(5, 5, 5, 0.68);
+  stroke-linejoin: round;
+  stroke-width: 2.2;
 }
 
-.product-cursor::before {
-  inset: 0;
-  z-index: 1;
-  background: #ffffff;
-}
-
-.product-cursor::after {
-  inset: -2px;
-  z-index: 0;
-  background: #050505;
+.cursor-fill {
+  fill: #ffffff;
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-linejoin: round;
+  stroke-width: 0.55;
 }
 
 @keyframes cursorFloat {
