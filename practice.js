@@ -8,6 +8,12 @@
     dbq: { title: "DBQ Practice", count: 1, button: "Generate DBQ" },
     leq: { title: "LEQ Practice", count: 1, button: "Generate LEQ" }
   };
+  const randomButtonLabels = {
+    mcq: "Generate 10 Random Questions",
+    saq: "Generate Random Topic",
+    dbq: "Generate Random Topic",
+    leq: "Generate Random Topic"
+  };
   const randomTopics = [
     { topic: "Indian Ocean trade networks, merchant diasporas, and cultural exchange", period: "Period 1: c. 1200-c. 1450" },
     { topic: "Mongol rule, Eurasian trade, and cross-cultural transfer", period: "Period 1: c. 1200-c. 1450" },
@@ -283,7 +289,7 @@
     }
     if (randomTopicButton) {
       randomTopicButton.disabled = isLoading;
-      randomTopicButton.innerHTML = isLoading ? loadingLabel("Generating") : "Generate Random Topic";
+      randomTopicButton.innerHTML = isLoading ? loadingLabel("Generating") : escapeHtml(randomButtonLabels[type] || "Generate Random Topic");
     }
   }
 
