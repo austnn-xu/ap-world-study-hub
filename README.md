@@ -1,4 +1,4 @@
-# AP World Study Hub
+# AP World Study Hub  
 
 Static GitHub Pages preview:
 
